@@ -74,6 +74,65 @@ function buildElevenLabsTtsPayload(text) {
   }
 }
 
+/**
+ * Strips ID3v2 tags and Xing/Info VBR headers from an MP3 buffer.
+ *
+ * ElevenLabs embeds a Xing frame in each response that tells the browser
+ * "this clip is N frames long." When clips are concatenated the browser
+ * stops playback after the first clip's declared length. Stripping the
+ * Xing frame (and any ID3 tag) from every chunk before joining fixes this.
+ */
+function stripMp3Metadata(buffer) {
+  let offset = 0
+
+  // Skip ID3v2 tag: starts with "ID3", size is a 4-byte synchsafe integer
+  if (
+    buffer.length >= 10 &&
+    buffer[0] === 0x49 &&
+    buffer[1] === 0x44 &&
+    buffer[2] === 0x33
+  ) {
+    const tagSize =
+      ((buffer[6] & 0x7f) << 21) |
+      ((buffer[7] & 0x7f) << 14) |
+      ((buffer[8] & 0x7f) << 7) |
+      (buffer[9] & 0x7f)
+    offset = 10 + tagSize
+  }
+
+  // Check whether the first MP3 frame is a Xing/Info VBR header and skip it
+  if (
+    offset + 4 < buffer.length &&
+    buffer[offset] === 0xff &&
+    (buffer[offset + 1] & 0xe0) === 0xe0
+  ) {
+    const hdr1 = buffer[offset + 1]
+    const hdr2 = buffer[offset + 2]
+    const hdr3 = buffer[offset + 3]
+    const version = (hdr1 >> 3) & 0x03
+    const channelMode = (hdr3 >> 6) & 0x03
+    // Side-info size: MPEG1 stereo=32, MPEG1 mono=17, MPEG2 stereo=17, MPEG2 mono=9
+    const sideInfoSize =
+      version === 3 ? (channelMode === 3 ? 17 : 32) : channelMode === 3 ? 9 : 17
+    const xingPos = offset + 4 + sideInfoSize
+    if (xingPos + 4 <= buffer.length) {
+      const tag = buffer.toString('ascii', xingPos, xingPos + 4)
+      if (tag === 'Xing' || tag === 'Info') {
+        const bitrateTable = [0,32,40,48,56,64,80,96,112,128,160,192,224,256,320,0]
+        const sampleRateTable = [44100, 48000, 32000, 0]
+        const bitrate = bitrateTable[(hdr2 >> 4) & 0x0f] * 1000
+        const sampleRate = sampleRateTable[(hdr2 >> 2) & 0x03]
+        const padding = (hdr2 >> 1) & 0x01
+        if (bitrate > 0 && sampleRate > 0) {
+          offset += Math.floor(144 * bitrate / sampleRate) + padding
+        }
+      }
+    }
+  }
+
+  return buffer.subarray(offset)
+}
+
 /** Generates a Buffer of silent MP3 frames for the given duration in milliseconds. */
 function generateSilentMp3(durationMs) {
   const frameDurationMs = (MP3_SAMPLES_PER_FRAME / MP3_SAMPLE_RATE) * 1000
@@ -148,7 +207,7 @@ async function generateStitchedAudio(voiceId, script) {
       const i = textIndices[ptr++]
       const formatted = formatTextForTts(chunks[i].content)
       if (formatted) {
-        results[i] = await callElevenLabsTts(voiceId, formatted)
+        results[i] = stripMp3Metadata(await callElevenLabsTts(voiceId, formatted))
       }
     }
   }
