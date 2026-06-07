@@ -8,7 +8,7 @@ import { buildMeditationPrompt } from './src/data/meditationPrompt.js'
 import { ELEVENLABS_VOICE_SETTINGS } from './src/config/elevenlabsVoiceSettings.js'
 import {
   cleanMeditationScript,
-  prepareScriptForSpeech,
+  scriptToPlainText,
 } from './src/utils/meditationScript.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -25,16 +25,6 @@ const ELEVENLABS_BASE_URL = 'https://api.elevenlabs.io/v1'
 const ELEVENLABS_TTS_MODEL = 'eleven_multilingual_v2'
 const ELEVENLABS_TTS_TIMEOUT_MS = 120_000
 
-// Silent MP3 frame constants: MPEG1 Layer3, 128 kbps, 44100 Hz, stereo, original
-const MP3_SAMPLES_PER_FRAME = 1152
-const MP3_SAMPLE_RATE = 44100
-const MP3_FRAME_SIZE_BYTES = 417 // floor(144 * 128000 / 44100), no padding
-const SILENT_MP3_FRAME_HEADER = Buffer.from([0xff, 0xfb, 0x90, 0x64])
-
-const TEST_AUDIO_SCRIPT =
-  'Close your eyes. <break time="3s"/> Take a breath in. <break time="3s"/> And let it go.'
-const TEST_AUDIO_VOICE_ID = 'UmQN7jS1Ee8B1czsUtQh'
-
 app.use(cors())
 app.use(express.json({ limit: '10mb' }))
 
@@ -50,21 +40,16 @@ function parseApiError(message) {
 
 function getAnthropicKey() {
   const apiKey = process.env.ANTHROPIC_API_KEY
-  if (!apiKey) {
-    throw new Error('Missing ANTHROPIC_API_KEY in .env')
-  }
+  if (!apiKey) throw new Error('Missing ANTHROPIC_API_KEY in .env')
   return apiKey
 }
 
 function getElevenLabsKey() {
   const apiKey = process.env.ELEVENLABS_API_KEY
-  if (!apiKey) {
-    throw new Error('Missing ELEVENLABS_API_KEY in .env')
-  }
+  if (!apiKey) throw new Error('Missing ELEVENLABS_API_KEY in .env')
   return apiKey
 }
 
-/** Builds the exact JSON body sent to ElevenLabs text-to-speech. */
 function buildElevenLabsTtsPayload(text) {
   return {
     text,
@@ -72,149 +57,6 @@ function buildElevenLabsTtsPayload(text) {
     apply_text_normalization: 'on',
     voice_settings: { ...ELEVENLABS_VOICE_SETTINGS },
   }
-}
-
-/**
- * Strips ID3v2 tags and Xing/Info VBR headers from an MP3 buffer.
- *
- * ElevenLabs embeds a Xing frame in each response that tells the browser
- * "this clip is N frames long." When clips are concatenated the browser
- * stops playback after the first clip's declared length. Stripping the
- * Xing frame (and any ID3 tag) from every chunk before joining fixes this.
- */
-function stripMp3Metadata(buffer) {
-  let offset = 0
-
-  // Skip ID3v2 tag: starts with "ID3", size is a 4-byte synchsafe integer
-  if (
-    buffer.length >= 10 &&
-    buffer[0] === 0x49 &&
-    buffer[1] === 0x44 &&
-    buffer[2] === 0x33
-  ) {
-    const tagSize =
-      ((buffer[6] & 0x7f) << 21) |
-      ((buffer[7] & 0x7f) << 14) |
-      ((buffer[8] & 0x7f) << 7) |
-      (buffer[9] & 0x7f)
-    offset = 10 + tagSize
-  }
-
-  // Check whether the first MP3 frame is a Xing/Info VBR header and skip it
-  if (
-    offset + 4 < buffer.length &&
-    buffer[offset] === 0xff &&
-    (buffer[offset + 1] & 0xe0) === 0xe0
-  ) {
-    const hdr1 = buffer[offset + 1]
-    const hdr2 = buffer[offset + 2]
-    const hdr3 = buffer[offset + 3]
-    const version = (hdr1 >> 3) & 0x03
-    const channelMode = (hdr3 >> 6) & 0x03
-    // Side-info size: MPEG1 stereo=32, MPEG1 mono=17, MPEG2 stereo=17, MPEG2 mono=9
-    const sideInfoSize =
-      version === 3 ? (channelMode === 3 ? 17 : 32) : channelMode === 3 ? 9 : 17
-    const xingPos = offset + 4 + sideInfoSize
-    if (xingPos + 4 <= buffer.length) {
-      const tag = buffer.toString('ascii', xingPos, xingPos + 4)
-      if (tag === 'Xing' || tag === 'Info') {
-        const bitrateTable = [0,32,40,48,56,64,80,96,112,128,160,192,224,256,320,0]
-        const sampleRateTable = [44100, 48000, 32000, 0]
-        const bitrate = bitrateTable[(hdr2 >> 4) & 0x0f] * 1000
-        const sampleRate = sampleRateTable[(hdr2 >> 2) & 0x03]
-        const padding = (hdr2 >> 1) & 0x01
-        if (bitrate > 0 && sampleRate > 0) {
-          offset += Math.floor(144 * bitrate / sampleRate) + padding
-        }
-      }
-    }
-  }
-
-  return buffer.subarray(offset)
-}
-
-/** Generates a Buffer of silent MP3 frames for the given duration in milliseconds. */
-function generateSilentMp3(durationMs) {
-  const frameDurationMs = (MP3_SAMPLES_PER_FRAME / MP3_SAMPLE_RATE) * 1000
-  const numFrames = Math.max(1, Math.ceil(durationMs / frameDurationMs))
-  const silentFrame = Buffer.alloc(MP3_FRAME_SIZE_BYTES)
-  SILENT_MP3_FRAME_HEADER.copy(silentFrame, 0)
-  return Buffer.concat(Array.from({ length: numFrames }, () => silentFrame))
-}
-
-/**
- * Splits a prepared speech script into alternating text and silence chunks.
- * Break tags are extracted as silence durations; everything else is text.
- */
-function parseScriptIntoChunks(script) {
-  const BREAK_PATTERN = /<break\s+time="(\d+(?:\.\d+)?)s"\s*\/>/gi
-  const chunks = []
-  let lastIndex = 0
-  let match
-
-  while ((match = BREAK_PATTERN.exec(script)) !== null) {
-    const textBefore = script.slice(lastIndex, match.index).trim()
-    if (textBefore) chunks.push({ type: 'text', content: textBefore })
-    chunks.push({ type: 'silence', durationMs: parseFloat(match[1]) * 1000 })
-    lastIndex = match.index + match[0].length
-  }
-
-  const remaining = script.slice(lastIndex).trim()
-  if (remaining) chunks.push({ type: 'text', content: remaining })
-
-  return chunks
-}
-
-/** Joins multi-line text into a single TTS-ready string. */
-function formatTextForTts(text) {
-  return text
-    .split('\n')
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0)
-    .map((line) => (line.endsWith('.') ? line : `${line}.`))
-    .join(' ')
-}
-
-/**
- * Generates stitched audio by splitting the script at break tags,
- * making a separate TTS call per text segment, and inserting real
- * silent MP3 frames for each pause.
- *
- * TTS calls run in parallel (up to TTS_CONCURRENCY at a time) so a
- * script with many short lines (one break per line) doesn't take forever.
- */
-const TTS_CONCURRENCY = 2
-
-async function generateStitchedAudio(voiceId, script) {
-  const chunks = parseScriptIntoChunks(script)
-  const results = new Array(chunks.length).fill(null)
-
-  // Fill silence buffers synchronously — no API call needed.
-  for (let i = 0; i < chunks.length; i++) {
-    if (chunks[i].type === 'silence') {
-      results[i] = generateSilentMp3(chunks[i].durationMs)
-    }
-  }
-
-  // Collect indices of text chunks to process via TTS.
-  const textIndices = chunks
-    .map((c, i) => (c.type === 'text' ? i : -1))
-    .filter((i) => i >= 0)
-
-  let ptr = 0
-  async function worker() {
-    while (ptr < textIndices.length) {
-      const i = textIndices[ptr++]
-      const formatted = formatTextForTts(chunks[i].content)
-      if (formatted) {
-        results[i] = stripMp3Metadata(await callElevenLabsTts(voiceId, formatted))
-      }
-    }
-  }
-
-  await Promise.all(Array.from({ length: TTS_CONCURRENCY }, worker))
-
-  return Buffer.concat(results.filter(Boolean))
 }
 
 async function callElevenLabsTts(voiceId, text) {
@@ -242,20 +84,6 @@ async function callElevenLabsTts(voiceId, text) {
   return Buffer.from(await response.arrayBuffer())
 }
 
-/** Returns the ElevenLabs request details for debugging (no API key). */
-function getElevenLabsTtsRequestDetails(voiceId, text) {
-  return {
-    method: 'POST',
-    url: `${ELEVENLABS_BASE_URL}/text-to-speech/${voiceId}`,
-    headers: {
-      'xi-api-key': '[REDACTED]',
-      'Content-Type': 'application/json',
-      Accept: 'audio/mpeg',
-    },
-    body: buildElevenLabsTtsPayload(text),
-  }
-}
-
 app.get('/api/health', (_req, res) => {
   res.json({
     ok: true,
@@ -264,64 +92,12 @@ app.get('/api/health', (_req, res) => {
   })
 })
 
-app.get('/api/elevenlabs-tts-debug', (_req, res) => {
-  res.json({
-    model_id: ELEVENLABS_TTS_MODEL,
-    audio_pipeline: {
-      approach: 'stitching',
-      description:
-        'Script is split at <break> tags. Each text segment gets its own TTS call; pauses are real silent MP3 frames concatenated into a single audio file.',
-      silent_mp3_frame: {
-        header_hex: SILENT_MP3_FRAME_HEADER.toString('hex'),
-        frame_size_bytes: MP3_FRAME_SIZE_BYTES,
-        frame_duration_ms: (MP3_SAMPLES_PER_FRAME / MP3_SAMPLE_RATE) * 1000,
-        spec: 'MPEG1 Layer3, 128 kbps, 44100 Hz, stereo, original',
-      },
-      apply_text_normalization: 'always on (no SSML in TTS calls)',
-      max_break_duration: 'Break tags above 8 seconds are clamped before parsing.',
-    },
-    test_script: TEST_AUDIO_SCRIPT,
-    test_voice_id: TEST_AUDIO_VOICE_ID,
-    request: getElevenLabsTtsRequestDetails(
-      TEST_AUDIO_VOICE_ID,
-      TEST_AUDIO_SCRIPT,
-    ),
-  })
-})
-
-app.get('/api/test-audio', async (_req, res) => {
-  try {
-    const audioBuffer = await callElevenLabsTts(
-      TEST_AUDIO_VOICE_ID,
-      TEST_AUDIO_SCRIPT,
-    )
-
-    res.set({
-      'Content-Type': 'audio/mpeg',
-      'X-TTS-Model': ELEVENLABS_TTS_MODEL,
-      'X-TTS-Voice-Id': TEST_AUDIO_VOICE_ID,
-    })
-    return res.send(audioBuffer)
-  } catch (error) {
-    return res.status(500).json({
-      error: error instanceof Error ? error.message : 'Test audio failed.',
-      model_id: ELEVENLABS_TTS_MODEL,
-      request: getElevenLabsTtsRequestDetails(
-        TEST_AUDIO_VOICE_ID,
-        TEST_AUDIO_SCRIPT,
-      ),
-    })
-  }
-})
-
 app.post('/api/generate-meditation', async (req, res) => {
   try {
     const { theme, situation, length } = req.body
 
     if (!theme || !length) {
-      return res.status(400).json({
-        error: 'theme and length are required.',
-      })
+      return res.status(400).json({ error: 'theme and length are required.' })
     }
 
     const prompt = buildMeditationPrompt({
@@ -355,9 +131,7 @@ app.post('/api/generate-meditation', async (req, res) => {
     const text = data.content?.find((block) => block.type === 'text')?.text
 
     if (!text?.trim()) {
-      return res.status(500).json({
-        error: 'Claude returned an empty meditation script.',
-      })
+      return res.status(500).json({ error: 'Claude returned an empty meditation script.' })
     }
 
     const rawScript = text.trim()
@@ -376,31 +150,13 @@ app.post('/api/generate-audio', async (req, res) => {
     const { script, voice_id: voiceId } = req.body
 
     if (!script?.trim() || !voiceId) {
-      return res.status(400).json({
-        error: 'script and voice_id are required.',
-      })
+      return res.status(400).json({ error: 'script and voice_id are required.' })
     }
 
-    console.log(
-      '[generate-audio] Script received (first 500 chars):',
-      script.slice(0, 500),
-    )
+    const plainText = scriptToPlainText(script)
+    console.log('[generate-audio] Text sent to ElevenLabs (first 500 chars):', plainText.slice(0, 500))
 
-    const speechScript = prepareScriptForSpeech(script)
-    const chunks = parseScriptIntoChunks(speechScript)
-
-    console.log(
-      '[generate-audio] Script parsed into',
-      chunks.length,
-      'chunks:',
-      chunks.map((c) =>
-        c.type === 'silence'
-          ? `silence(${c.durationMs}ms)`
-          : `text(${c.content.length} chars)`,
-      ),
-    )
-
-    const audioBuffer = await generateStitchedAudio(voiceId, speechScript)
+    const audioBuffer = await callElevenLabsTts(voiceId, plainText)
 
     res.set('Content-Type', 'audio/mpeg')
     return res.send(audioBuffer)
@@ -410,7 +166,6 @@ app.post('/api/generate-audio', async (req, res) => {
         error: 'ElevenLabs took longer than 120 seconds. Please try again.',
       })
     }
-
     return res.status(500).json({
       error: error instanceof Error ? error.message : 'Failed to generate audio.',
     })
@@ -425,10 +180,7 @@ app.post('/api/clone-voice', upload.single('file'), async (req, res) => {
 
     const formData = new FormData()
     formData.append('name', `Tune-Up Voice ${Date.now()}`)
-    formData.append(
-      'description',
-      'Personal voice profile created in Tune-Up',
-    )
+    formData.append('description', 'Personal voice profile created in Tune-Up')
     formData.append(
       'files',
       new Blob([req.file.buffer], { type: req.file.mimetype }),
@@ -437,9 +189,7 @@ app.post('/api/clone-voice', upload.single('file'), async (req, res) => {
 
     const response = await fetch(`${ELEVENLABS_BASE_URL}/voices/add`, {
       method: 'POST',
-      headers: {
-        'xi-api-key': getElevenLabsKey(),
-      },
+      headers: { 'xi-api-key': getElevenLabsKey() },
       body: formData,
     })
 
@@ -476,12 +226,9 @@ const server = app.listen(PORT, () => {
 
 server.on('error', (error) => {
   if (error.code === 'EADDRINUSE') {
-    console.error(
-      `Port ${PORT} is already in use. Stop the other process and run npm run dev again.`,
-    )
+    console.error(`Port ${PORT} is already in use. Stop the other process and run npm run dev again.`)
     process.exit(1)
   }
-
   console.error('Server failed to start:', error)
   process.exit(1)
 })

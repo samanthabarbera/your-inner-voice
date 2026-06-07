@@ -8,19 +8,8 @@ function isDividerLine(line) {
   return trimmed.length > 0 && /^[\s\-—–_=~*·.]+$/.test(trimmed)
 }
 
-const BREAK_TAG_PATTERN = /^<break\s/i
-const SSML_BREAK_PATTERN = /<break\s+time="(\d+(?:\.\d+)?)s"\s*\/>/gi
-
 function isBreakTagLine(line) {
-  return BREAK_TAG_PATTERN.test(line.trim())
-}
-
-/** Cap break tags at 8 seconds — values above that are reduced before TTS. */
-export function clampSsmlBreakDurations(script) {
-  return script.replace(SSML_BREAK_PATTERN, (_match, seconds) => {
-    const clamped = Math.min(parseFloat(seconds), 8)
-    return `<break time="${clamped}s"/>`
-  })
+  return /^<break\s/i.test(line.trim())
 }
 
 function stripPartLabelsAndDividers(script) {
@@ -29,8 +18,7 @@ function stripPartLabelsAndDividers(script) {
     .filter((line) => {
       const trimmed = line.trim()
       if (!trimmed) return false
-      // Always preserve SSML break tags — never strip these.
-      if (isBreakTagLine(trimmed)) return true
+      if (isBreakTagLine(trimmed)) return false
       if (PART_LABEL_LINE_PATTERN.test(trimmed)) return false
       if (isDividerLine(trimmed)) return false
       return true
@@ -40,14 +28,24 @@ function stripPartLabelsAndDividers(script) {
     .join('\n')
 }
 
-/** Clean script after Claude generation (COMPLETE marker, part labels, dividers). */
+/** Clean script after Claude generation — removes part labels, dividers, break tags, and the COMPLETE marker. */
 export function cleanMeditationScript(script) {
   return stripPartLabelsAndDividers(
     script.replace(/\s*COMPLETE\s*$/i, '').trim(),
   ).trim()
 }
 
-/** Final pass before sending text to ElevenLabs. */
-export function prepareScriptForSpeech(script) {
-  return clampSsmlBreakDurations(cleanMeditationScript(script))
+/**
+ * Convert the cleaned script to a single plain-text string suitable for one
+ * ElevenLabs TTS call. Short lines become sentences; ellipses provide pacing.
+ */
+export function scriptToPlainText(script) {
+  return cleanMeditationScript(script)
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+    .map((line) => (line.match(/[.!?…]$/) ? line : `${line}...`))
+    .join(' ')
+    .replace(/\.{3,}/g, '...')
+    .trim()
 }
