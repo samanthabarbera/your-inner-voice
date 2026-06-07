@@ -36,16 +36,15 @@ export function cleanMeditationScript(script) {
 }
 
 /**
- * Convert the cleaned script to a single plain-text string suitable for one
- * ElevenLabs TTS call. Short lines become sentences; ellipses provide pacing.
+ * Convert the cleaned script into a single ElevenLabs-ready string.
+ * Each line of spoken text is separated by a real 2-second SSML break
+ * so ElevenLabs inserts genuine silence between phrases.
  */
-export function scriptToPlainText(script) {
+export function scriptForTts(script) {
   return cleanMeditationScript(script)
     .split('\n')
     .map((line) => line.trim())
     .filter((line) => line.length > 0)
-    .map((line) => (line.match(/[.!?…]$/) ? line : `${line}...`))
-    .join(' ')
-    .replace(/\.{3,}/g, '...')
+    .join(' <break time="2s"/> ')
     .trim()
 }

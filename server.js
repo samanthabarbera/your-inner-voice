@@ -8,7 +8,7 @@ import { buildMeditationPrompt } from './src/data/meditationPrompt.js'
 import { ELEVENLABS_VOICE_SETTINGS } from './src/config/elevenlabsVoiceSettings.js'
 import {
   cleanMeditationScript,
-  scriptToPlainText,
+  scriptForTts,
 } from './src/utils/meditationScript.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -54,7 +54,8 @@ function buildElevenLabsTtsPayload(text) {
   return {
     text,
     model_id: ELEVENLABS_TTS_MODEL,
-    apply_text_normalization: 'on',
+    // Normalization must be off when SSML break tags are present
+    apply_text_normalization: /<break\s/i.test(text) ? 'off' : 'on',
     voice_settings: { ...ELEVENLABS_VOICE_SETTINGS },
   }
 }
@@ -153,10 +154,10 @@ app.post('/api/generate-audio', async (req, res) => {
       return res.status(400).json({ error: 'script and voice_id are required.' })
     }
 
-    const plainText = scriptToPlainText(script)
-    console.log('[generate-audio] Text sent to ElevenLabs (first 500 chars):', plainText.slice(0, 500))
+    const ttsText = scriptForTts(script)
+    console.log('[generate-audio] Text sent to ElevenLabs (first 500 chars):', ttsText.slice(0, 500))
 
-    const audioBuffer = await callElevenLabsTts(voiceId, plainText)
+    const audioBuffer = await callElevenLabsTts(voiceId, ttsText)
 
     res.set('Content-Type', 'audio/mpeg')
     return res.send(audioBuffer)
