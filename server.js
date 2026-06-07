@@ -124,7 +124,7 @@ function formatTextForTts(text) {
  * TTS calls run in parallel (up to TTS_CONCURRENCY at a time) so a
  * script with many short lines (one break per line) doesn't take forever.
  */
-const TTS_CONCURRENCY = 8
+const TTS_CONCURRENCY = 2
 
 async function generateStitchedAudio(voiceId, script) {
   const chunks = parseScriptIntoChunks(script)
