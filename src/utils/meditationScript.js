@@ -15,24 +15,6 @@ function isBreakTagLine(line) {
   return BREAK_TAG_PATTERN.test(line.trim())
 }
 
-/** Convert line-based script to inline SSML (matches the working test format). */
-export function toInlineSsml(script) {
-  const parts = []
-
-  for (const line of script.split('\n')) {
-    const trimmed = line.trim()
-    if (!trimmed) continue
-
-    if (isBreakTagLine(trimmed)) {
-      parts.push(trimmed)
-    } else {
-      parts.push(trimmed.endsWith('.') ? trimmed : `${trimmed}.`)
-    }
-  }
-
-  return parts.join(' ')
-}
-
 /** Cap break tags at 8 seconds — values above that are reduced before TTS. */
 export function clampSsmlBreakDurations(script) {
   return script.replace(SSML_BREAK_PATTERN, (_match, seconds) => {

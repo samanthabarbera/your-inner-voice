@@ -9,7 +9,6 @@ import { ELEVENLABS_VOICE_SETTINGS } from './src/config/elevenlabsVoiceSettings.
 import {
   cleanMeditationScript,
   prepareScriptForSpeech,
-  toInlineSsml,
 } from './src/utils/meditationScript.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -25,6 +24,13 @@ const MEDITATION_MAX_TOKENS = 4000
 const ELEVENLABS_BASE_URL = 'https://api.elevenlabs.io/v1'
 const ELEVENLABS_TTS_MODEL = 'eleven_multilingual_v2'
 const ELEVENLABS_TTS_TIMEOUT_MS = 120_000
+
+// Silent MP3 frame constants: MPEG1 Layer3, 128 kbps, 44100 Hz, stereo, original
+const MP3_SAMPLES_PER_FRAME = 1152
+const MP3_SAMPLE_RATE = 44100
+const MP3_FRAME_SIZE_BYTES = 417 // floor(144 * 128000 / 44100), no padding
+const SILENT_MP3_FRAME_HEADER = Buffer.from([0xff, 0xfb, 0x90, 0x64])
+
 const TEST_AUDIO_SCRIPT =
   'Close your eyes. <break time="3s"/> Take a breath in. <break time="3s"/> And let it go.'
 const TEST_AUDIO_VOICE_ID = 'UmQN7jS1Ee8B1czsUtQh'
@@ -60,14 +66,77 @@ function getElevenLabsKey() {
 
 /** Builds the exact JSON body sent to ElevenLabs text-to-speech. */
 function buildElevenLabsTtsPayload(text) {
-  const hasSsmlBreaks = /<break\s/i.test(text)
-
   return {
     text,
     model_id: ELEVENLABS_TTS_MODEL,
-    apply_text_normalization: hasSsmlBreaks ? 'off' : 'on',
+    apply_text_normalization: 'on',
     voice_settings: { ...ELEVENLABS_VOICE_SETTINGS },
   }
+}
+
+/** Generates a Buffer of silent MP3 frames for the given duration in milliseconds. */
+function generateSilentMp3(durationMs) {
+  const frameDurationMs = (MP3_SAMPLES_PER_FRAME / MP3_SAMPLE_RATE) * 1000
+  const numFrames = Math.max(1, Math.ceil(durationMs / frameDurationMs))
+  const silentFrame = Buffer.alloc(MP3_FRAME_SIZE_BYTES)
+  SILENT_MP3_FRAME_HEADER.copy(silentFrame, 0)
+  return Buffer.concat(Array.from({ length: numFrames }, () => silentFrame))
+}
+
+/**
+ * Splits a prepared speech script into alternating text and silence chunks.
+ * Break tags are extracted as silence durations; everything else is text.
+ */
+function parseScriptIntoChunks(script) {
+  const BREAK_PATTERN = /<break\s+time="(\d+(?:\.\d+)?)s"\s*\/>/gi
+  const chunks = []
+  let lastIndex = 0
+  let match
+
+  while ((match = BREAK_PATTERN.exec(script)) !== null) {
+    const textBefore = script.slice(lastIndex, match.index).trim()
+    if (textBefore) chunks.push({ type: 'text', content: textBefore })
+    chunks.push({ type: 'silence', durationMs: parseFloat(match[1]) * 1000 })
+    lastIndex = match.index + match[0].length
+  }
+
+  const remaining = script.slice(lastIndex).trim()
+  if (remaining) chunks.push({ type: 'text', content: remaining })
+
+  return chunks
+}
+
+/** Joins multi-line text into a single TTS-ready string. */
+function formatTextForTts(text) {
+  return text
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+    .map((line) => (line.endsWith('.') ? line : `${line}.`))
+    .join(' ')
+}
+
+/**
+ * Generates stitched audio by splitting the script at break tags,
+ * making a separate TTS call per text segment, and inserting real
+ * silent MP3 frames for each pause.
+ */
+async function generateStitchedAudio(voiceId, script) {
+  const chunks = parseScriptIntoChunks(script)
+  const buffers = []
+
+  for (const chunk of chunks) {
+    if (chunk.type === 'text') {
+      const formatted = formatTextForTts(chunk.content)
+      if (formatted) {
+        buffers.push(await callElevenLabsTts(voiceId, formatted))
+      }
+    } else {
+      buffers.push(generateSilentMp3(chunk.durationMs))
+    }
+  }
+
+  return Buffer.concat(buffers)
 }
 
 async function callElevenLabsTts(voiceId, text) {
@@ -120,16 +189,18 @@ app.get('/api/health', (_req, res) => {
 app.get('/api/elevenlabs-tts-debug', (_req, res) => {
   res.json({
     model_id: ELEVENLABS_TTS_MODEL,
-    ssml_notes: {
-      break_tags_in_text_field:
-        'SSML <break/> tags are embedded in the JSON "text" field — there is no separate SSML content type or enable_ssml flag.',
-      apply_text_normalization:
-        'Set to "off" when SSML breaks are present. Controls number/date normalization only.',
-      break_tag_format: 'Use self-closing tags only: <break time="3s"/>',
-      max_break_duration:
-        'Break tags above 8 seconds are clamped server-side before TTS.',
-      synthesis:
-        'Full meditation scripts are sent as one inline SSML request (no chunking).',
+    audio_pipeline: {
+      approach: 'stitching',
+      description:
+        'Script is split at <break> tags. Each text segment gets its own TTS call; pauses are real silent MP3 frames concatenated into a single audio file.',
+      silent_mp3_frame: {
+        header_hex: SILENT_MP3_FRAME_HEADER.toString('hex'),
+        frame_size_bytes: MP3_FRAME_SIZE_BYTES,
+        frame_duration_ms: (MP3_SAMPLES_PER_FRAME / MP3_SAMPLE_RATE) * 1000,
+        spec: 'MPEG1 Layer3, 128 kbps, 44100 Hz, stereo, original',
+      },
+      apply_text_normalization: 'always on (no SSML in TTS calls)',
+      max_break_duration: 'Break tags above 8 seconds are clamped before parsing.',
     },
     test_script: TEST_AUDIO_SCRIPT,
     test_voice_id: TEST_AUDIO_VOICE_ID,
@@ -238,22 +309,20 @@ app.post('/api/generate-audio', async (req, res) => {
     )
 
     const speechScript = prepareScriptForSpeech(script)
-    const inlineScript = toInlineSsml(speechScript)
+    const chunks = parseScriptIntoChunks(speechScript)
 
     console.log(
-      '[generate-audio] Inline SSML sent to ElevenLabs (first 500 chars):',
-      inlineScript.slice(0, 500),
+      '[generate-audio] Script parsed into',
+      chunks.length,
+      'chunks:',
+      chunks.map((c) =>
+        c.type === 'silence'
+          ? `silence(${c.durationMs}ms)`
+          : `text(${c.content.length} chars)`,
+      ),
     )
 
-    console.log(
-      'SENDING TO ELEVENLABS:',
-      JSON.stringify({
-        text: inlineScript.substring(0, 1000),
-        voice_id: voiceId,
-      }),
-    )
-
-    const audioBuffer = await callElevenLabsTts(voiceId, inlineScript)
+    const audioBuffer = await generateStitchedAudio(voiceId, speechScript)
 
     res.set('Content-Type', 'audio/mpeg')
     return res.send(audioBuffer)
