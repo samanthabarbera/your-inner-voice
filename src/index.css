@@ -1,0 +1,53 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-display: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  --font-sans: 'DM Sans', system-ui, sans-serif;
+
+  --color-canvas: #f4f6f2;
+  --color-canvas-deep: #e8ede6;
+  --color-ink: #2f3a32;
+  --color-ink-muted: #5f6d62;
+  --color-sage: #6b7f6e;
+  --color-sage-dark: #4d5f50;
+  --color-accent: #7a9183;
+  --color-accent-hover: #6a8173;
+}
+
+@layer base {
+  html {
+    @apply antialiased;
+  }
+
+  body {
+    @apply m-0 min-h-svh font-sans text-ink;
+    background: linear-gradient(
+      165deg,
+      var(--color-canvas) 0%,
+      #eef2eb 45%,
+      var(--color-canvas-deep) 100%
+    );
+  }
+
+  #root {
+    @apply min-h-svh;
+  }
+}
+
+@layer utilities {
+  @keyframes pulse-soft {
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 0.5;
+    }
+    50% {
+      transform: scale(1.12);
+      opacity: 1;
+    }
+  }
+
+  .animate-pulse-soft {
+    animation: pulse-soft 2.4s ease-in-out infinite;
+  }
+}
