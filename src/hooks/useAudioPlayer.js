@@ -113,10 +113,12 @@ export function useAudioPlayer(audioUrl, { autoPlay = true, onEnded } = {}) {
     audio.addEventListener('ended', handleEnded)
 
     if (autoPlay) {
-      setupAnalyser(audio)
-      audioContextRef.current?.resume().then(() => audio.play()).then(() => {
+      // Don't route through AudioContext here — AudioContext.resume() needs a
+      // user gesture and will silence the audio if suspended. Play directly
+      // through the HTML audio element; the analyser gets wired up on first
+      // manual play() call (which is always a user gesture).
+      audio.play().then(() => {
         setIsPlaying(true)
-        startWaveformLoop()
       }).catch(() => {})
     }
 

@@ -120,23 +120,42 @@ function formatTextForTts(text) {
  * Generates stitched audio by splitting the script at break tags,
  * making a separate TTS call per text segment, and inserting real
  * silent MP3 frames for each pause.
+ *
+ * TTS calls run in parallel (up to TTS_CONCURRENCY at a time) so a
+ * script with many short lines (one break per line) doesn't take forever.
  */
+const TTS_CONCURRENCY = 8
+
 async function generateStitchedAudio(voiceId, script) {
   const chunks = parseScriptIntoChunks(script)
-  const buffers = []
+  const results = new Array(chunks.length).fill(null)
 
-  for (const chunk of chunks) {
-    if (chunk.type === 'text') {
-      const formatted = formatTextForTts(chunk.content)
-      if (formatted) {
-        buffers.push(await callElevenLabsTts(voiceId, formatted))
-      }
-    } else {
-      buffers.push(generateSilentMp3(chunk.durationMs))
+  // Fill silence buffers synchronously — no API call needed.
+  for (let i = 0; i < chunks.length; i++) {
+    if (chunks[i].type === 'silence') {
+      results[i] = generateSilentMp3(chunks[i].durationMs)
     }
   }
 
-  return Buffer.concat(buffers)
+  // Collect indices of text chunks to process via TTS.
+  const textIndices = chunks
+    .map((c, i) => (c.type === 'text' ? i : -1))
+    .filter((i) => i >= 0)
+
+  let ptr = 0
+  async function worker() {
+    while (ptr < textIndices.length) {
+      const i = textIndices[ptr++]
+      const formatted = formatTextForTts(chunks[i].content)
+      if (formatted) {
+        results[i] = await callElevenLabsTts(voiceId, formatted)
+      }
+    }
+  }
+
+  await Promise.all(Array.from({ length: TTS_CONCURRENCY }, worker))
+
+  return Buffer.concat(results.filter(Boolean))
 }
 
 async function callElevenLabsTts(voiceId, text) {
