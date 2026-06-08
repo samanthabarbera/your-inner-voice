@@ -66,17 +66,21 @@ Rules derived from this example:
 — Use only <break time="3s"/> for all pauses — no other break durations
 — No full paragraphs. Ever. Only single short lines.
 — No connective tissue words like 'and so' or 'as you' or 'allowing yourself to' — cut them all
-— Word count minimums (you MUST reach these): 5 min = 400 words, 10 min = 700 words, 15 min = 1050 words. Count your words before finishing — if you are under the minimum, keep writing.
-— A meditation that ends early fails the listener. Fill every minute of the selected [LENGTH]-minute duration.
+— Word count target: write approximately [WORD_COUNT] spoken words — aim for this number precisely. Too few makes the meditation feel rushed and incomplete; too many makes it drag past [LENGTH] minutes.
+— Distribute [WORD_COUNT] words across all 8 parts according to their percentages. Every part must be present and complete.
 — The silence is the meditation. The words are just the doorway.`
+
+const WORD_COUNTS = { 5: 260, 10: 570, 15: 935 }
 
 export function buildMeditationPrompt(answers) {
   const theme = getThemeLabel(answers.theme)
   const situation =
     answers.context?.trim() || 'They did not share specific details.'
   const length = getLengthMinutes(answers.length)
+  const wordCount = WORD_COUNTS[length] ?? 560
 
   return MASTER_PROMPT_TEMPLATE.replaceAll('[THEME]', theme)
     .replaceAll('[THEIR SITUATION]', situation)
     .replaceAll('[LENGTH]', String(length))
+    .replaceAll('[WORD_COUNT]', String(wordCount))
 }

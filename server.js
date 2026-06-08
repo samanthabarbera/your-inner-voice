@@ -17,7 +17,7 @@ const PORT = 3001
 
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages'
 const MEDITATION_MODEL = 'claude-sonnet-4-6'
-const MEDITATION_MAX_TOKENS = 4000
+const MEDITATION_MAX_TOKENS_BY_MINUTES = { 5: 1000, 10: 1850, 15: 3100 }
 const ELEVENLABS_BASE_URL = 'https://api.elevenlabs.io/v1'
 const ELEVENLABS_TTS_MODEL = 'eleven_multilingual_v2'
 const ELEVENLABS_TTS_TIMEOUT_MS = 120_000
@@ -209,6 +209,9 @@ app.post('/api/generate-meditation', async (req, res) => {
       length,
     })
 
+    const lengthMinutes = parseInt(length, 10) || 10
+    const maxTokens = MEDITATION_MAX_TOKENS_BY_MINUTES[lengthMinutes] ?? 1800
+
     const response = await fetch(ANTHROPIC_API_URL, {
       method: 'POST',
       headers: {
@@ -218,7 +221,7 @@ app.post('/api/generate-meditation', async (req, res) => {
       },
       body: JSON.stringify({
         model: MEDITATION_MODEL,
-        max_tokens: MEDITATION_MAX_TOKENS,
+        max_tokens: maxTokens,
         messages: [{ role: 'user', content: prompt }],
       }),
     })
