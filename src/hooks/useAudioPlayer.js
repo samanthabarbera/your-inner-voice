@@ -1,97 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+const WAVEFORM_IDLE = Array(32).fill(0.15)
+const WAVEFORM_ACTIVE = Array.from({ length: 32 }, (_, i) =>
+  0.3 + 0.5 * Math.abs(Math.sin(i * 0.4)),
+)
+
 export function useAudioPlayer(audioUrl, { autoPlay = true, onEnded } = {}) {
   const audioRef = useRef(null)
-  const audioContextRef = useRef(null)
-  const analyserRef = useRef(null)
-  const sourceRef = useRef(null)
-  const animationFrameRef = useRef(null)
   const onEndedRef = useRef(onEnded)
 
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
-  const [waveformLevels, setWaveformLevels] = useState(() => Array(32).fill(0.15))
 
   onEndedRef.current = onEnded
-
-  const stopWaveformLoop = useCallback(() => {
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current)
-      animationFrameRef.current = null
-    }
-  }, [])
-
-  const startWaveformLoop = useCallback(() => {
-    const analyser = analyserRef.current
-    if (!analyser) return
-
-    const data = new Uint8Array(analyser.frequencyBinCount)
-
-    const tick = () => {
-      analyser.getByteFrequencyData(data)
-      const sliceSize = Math.floor(data.length / 32)
-      const levels = Array.from({ length: 32 }, (_, index) => {
-        const start = index * sliceSize
-        const slice = data.slice(start, start + sliceSize)
-        const average =
-          slice.reduce((sum, value) => sum + value, 0) / (slice.length || 1)
-        return Math.max(0.12, Math.min(1, average / 110))
-      })
-      setWaveformLevels(levels)
-      animationFrameRef.current = requestAnimationFrame(tick)
-    }
-
-    tick()
-  }, [])
-
-  const setupAnalyser = useCallback((audio) => {
-    if (sourceRef.current) return
-
-    const audioContext = new AudioContext()
-    const analyser = audioContext.createAnalyser()
-    analyser.fftSize = 256
-    const source = audioContext.createMediaElementSource(audio)
-    source.connect(analyser)
-    analyser.connect(audioContext.destination)
-
-    audioContextRef.current = audioContext
-    analyserRef.current = analyser
-    sourceRef.current = source
-  }, [])
-
-  const play = useCallback(async () => {
-    const audio = audioRef.current
-    if (!audio) return
-
-    setupAnalyser(audio)
-
-    if (audioContextRef.current?.state === 'suspended') {
-      await audioContextRef.current.resume()
-    }
-
-    await audio.play()
-    setIsPlaying(true)
-    startWaveformLoop()
-  }, [setupAnalyser, startWaveformLoop])
-
-  const pause = useCallback(() => {
-    const audio = audioRef.current
-    if (!audio) return
-
-    audio.pause()
-    setIsPlaying(false)
-    stopWaveformLoop()
-    setWaveformLevels(Array(32).fill(0.15))
-  }, [stopWaveformLoop])
-
-  const togglePlayback = useCallback(() => {
-    if (isPlaying) {
-      pause()
-    } else {
-      play().catch(() => {})
-    }
-  }, [isPlaying, pause, play])
 
   useEffect(() => {
     if (!audioUrl) return undefined
@@ -99,46 +21,45 @@ export function useAudioPlayer(audioUrl, { autoPlay = true, onEnded } = {}) {
     const audio = new Audio(audioUrl)
     audioRef.current = audio
 
-    const handleTimeUpdate = () => setCurrentTime(audio.currentTime)
-    const handleLoadedMetadata = () => setDuration(audio.duration || 0)
-    const handleEnded = () => {
+    const onPlay = () => setIsPlaying(true)
+    const onPause = () => setIsPlaying(false)
+    const onTimeUpdate = () => setCurrentTime(audio.currentTime)
+    const onLoadedMetadata = () => setDuration(audio.duration || 0)
+    const onEnded = () => {
       setIsPlaying(false)
-      stopWaveformLoop()
-      setWaveformLevels(Array(32).fill(0.15))
       onEndedRef.current?.()
     }
 
-    audio.addEventListener('timeupdate', handleTimeUpdate)
-    audio.addEventListener('loadedmetadata', handleLoadedMetadata)
-    audio.addEventListener('ended', handleEnded)
+    audio.addEventListener('play', onPlay)
+    audio.addEventListener('pause', onPause)
+    audio.addEventListener('timeupdate', onTimeUpdate)
+    audio.addEventListener('loadedmetadata', onLoadedMetadata)
+    audio.addEventListener('ended', onEnded)
 
     if (autoPlay) {
-      // Don't route through AudioContext here — AudioContext.resume() needs a
-      // user gesture and will silence the audio if suspended. Play directly
-      // through the HTML audio element; the analyser gets wired up on first
-      // manual play() call (which is always a user gesture).
-      audio.play().then(() => {
-        setIsPlaying(true)
-      }).catch(() => {})
+      audio.play().catch(() => {})
     }
 
     return () => {
-      stopWaveformLoop()
       audio.pause()
-      audio.removeEventListener('timeupdate', handleTimeUpdate)
-      audio.removeEventListener('loadedmetadata', handleLoadedMetadata)
-      audio.removeEventListener('ended', handleEnded)
+      audio.removeEventListener('play', onPlay)
+      audio.removeEventListener('pause', onPause)
+      audio.removeEventListener('timeupdate', onTimeUpdate)
+      audio.removeEventListener('loadedmetadata', onLoadedMetadata)
+      audio.removeEventListener('ended', onEnded)
       audioRef.current = null
-
-      if (audioContextRef.current) {
-        audioContextRef.current.close().catch(() => {})
-        audioContextRef.current = null
-      }
-
-      analyserRef.current = null
-      sourceRef.current = null
     }
-  }, [audioUrl, autoPlay, setupAnalyser, startWaveformLoop, stopWaveformLoop])
+  }, [audioUrl, autoPlay])
+
+  const togglePlayback = useCallback(() => {
+    const audio = audioRef.current
+    if (!audio) return
+    if (audio.paused) {
+      audio.play().catch((err) => console.error('[audio] play failed:', err))
+    } else {
+      audio.pause()
+    }
+  }, [])
 
   const progress = duration > 0 ? currentTime / duration : 0
 
@@ -147,7 +68,7 @@ export function useAudioPlayer(audioUrl, { autoPlay = true, onEnded } = {}) {
     currentTime,
     duration,
     progress,
-    waveformLevels,
+    waveformLevels: isPlaying ? WAVEFORM_ACTIVE : WAVEFORM_IDLE,
     togglePlayback,
   }
 }

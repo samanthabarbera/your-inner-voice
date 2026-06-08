@@ -35,16 +35,10 @@ export function cleanMeditationScript(script) {
   ).trim()
 }
 
-/**
- * Convert the cleaned script into a single ElevenLabs-ready string.
- * Each line of spoken text is separated by a real 2-second SSML break
- * so ElevenLabs inserts genuine silence between phrases.
- */
-export function scriptForTts(script) {
+/** Return the script as an array of spoken lines, ready for per-line TTS. */
+export function scriptToLines(script) {
   return cleanMeditationScript(script)
     .split('\n')
     .map((line) => line.trim())
     .filter((line) => line.length > 0)
-    .join(' <break time="2s"/> ')
-    .trim()
 }

@@ -66,8 +66,8 @@ Rules derived from this example:
 — Use only <break time="3s"/> for all pauses — no other break durations
 — No full paragraphs. Ever. Only single short lines.
 — No connective tissue words like 'and so' or 'as you' or 'allowing yourself to' — cut them all
-— Word count maximums: 5 min = 300 words, 10 min = 550 words, 15 min = 800 words
-— If in doubt, use fewer words and more breaks
+— Word count minimums (you MUST reach these): 5 min = 400 words, 10 min = 700 words, 15 min = 1050 words. Count your words before finishing — if you are under the minimum, keep writing.
+— A meditation that ends early fails the listener. Fill every minute of the selected [LENGTH]-minute duration.
 — The silence is the meditation. The words are just the doorway.`
 
 export function buildMeditationPrompt(answers) {
