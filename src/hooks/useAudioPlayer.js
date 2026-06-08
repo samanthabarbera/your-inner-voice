@@ -61,6 +61,12 @@ export function useAudioPlayer(audioUrl, { autoPlay = true, onEnded } = {}) {
     }
   }, [])
 
+  const seek = useCallback((fraction) => {
+    const audio = audioRef.current
+    if (!audio || !Number.isFinite(audio.duration)) return
+    audio.currentTime = Math.max(0, Math.min(1, fraction)) * audio.duration
+  }, [])
+
   const progress = duration > 0 ? currentTime / duration : 0
 
   return {
@@ -70,6 +76,7 @@ export function useAudioPlayer(audioUrl, { autoPlay = true, onEnded } = {}) {
     progress,
     waveformLevels: isPlaying ? WAVEFORM_ACTIVE : WAVEFORM_IDLE,
     togglePlayback,
+    seek,
   }
 }
 

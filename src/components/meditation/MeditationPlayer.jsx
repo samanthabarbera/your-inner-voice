@@ -9,7 +9,13 @@ export default function MeditationPlayer({ audioUrl, title, onEnded }) {
     progress,
     waveformLevels,
     togglePlayback,
+    seek,
   } = useAudioPlayer(audioUrl, { autoPlay: true, onEnded })
+
+  function handleProgressClick(e) {
+    const rect = e.currentTarget.getBoundingClientRect()
+    seek((e.clientX - rect.left) / rect.width)
+  }
 
   return (
     <main className="flex min-h-svh flex-col px-6 py-12">
@@ -27,17 +33,20 @@ export default function MeditationPlayer({ audioUrl, title, onEnded }) {
 
         <div className="mt-8">
           <div
-            className="h-1.5 w-full overflow-hidden rounded-full bg-sage-dark/15"
-            role="progressbar"
+            className="h-6 w-full cursor-pointer flex items-center"
+            role="slider"
             aria-valuenow={Math.round(progress * 100)}
             aria-valuemin={0}
             aria-valuemax={100}
             aria-label="Meditation progress"
+            onClick={handleProgressClick}
           >
-            <div
-              className="h-full rounded-full bg-sage-dark transition-[width] duration-150"
-              style={{ width: `${progress * 100}%` }}
-            />
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-sage-dark/15">
+              <div
+                className="h-full rounded-full bg-sage-dark transition-[width] duration-150"
+                style={{ width: `${progress * 100}%` }}
+              />
+            </div>
           </div>
           <div className="mt-2 flex justify-between text-sm tabular-nums text-ink-muted">
             <span>{formatTime(currentTime)}</span>
