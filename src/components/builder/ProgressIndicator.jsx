@@ -1,16 +1,16 @@
 import { TOTAL_STEPS } from '../../data/builderOptions'
 
-export default function ProgressIndicator({ currentStep }) {
+export default function ProgressIndicator({ currentStep, totalSteps = TOTAL_STEPS }) {
   return (
     <div
       className="flex w-full gap-1.5"
       role="progressbar"
       aria-valuenow={currentStep}
       aria-valuemin={1}
-      aria-valuemax={TOTAL_STEPS}
-      aria-label={`Step ${currentStep} of ${TOTAL_STEPS}`}
+      aria-valuemax={totalSteps}
+      aria-label={`Step ${currentStep} of ${totalSteps}`}
     >
-      {Array.from({ length: TOTAL_STEPS }, (_, index) => {
+      {Array.from({ length: totalSteps }, (_, index) => {
         const stepNumber = index + 1
         const isComplete = stepNumber < currentStep
         const isCurrent = stepNumber === currentStep

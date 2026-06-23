@@ -3,9 +3,11 @@ import { createInstantVoiceClone } from '../../lib/elevenlabs'
 import { useVoiceRecorder } from '../../hooks/useVoiceRecorder'
 import { useVoicePreview } from '../../hooks/useVoicePreview'
 import {
+  CLONED_VOICE_DISCLAIMER,
   CUSTOM_VOICE_CONFIRMATION_TEXT,
   RECORDING_MAX_SECONDS,
   RECORDING_MIN_SECONDS,
+  RECORDING_SCRIPT,
 } from '../../data/voiceRecording'
 import ContinueButton from '../builder/ContinueButton'
 import PlayButton from '../builder/PlayButton'
@@ -20,7 +22,7 @@ function formatTime(seconds) {
 
 function CloneLayout({ children, onClose }) {
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-[#f4f6f2]/95 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex flex-col overflow-y-auto bg-[#f4f6f2]/95 backdrop-blur-sm">
       <div className="mx-auto flex w-full max-w-lg flex-1 flex-col px-6 py-8">
         <button
           type="button"
@@ -41,6 +43,29 @@ function LoadingPulse() {
       <span className="absolute inline-flex h-16 w-16 animate-pulse-soft rounded-full bg-sage-dark/10" />
       <span className="absolute inline-flex h-11 w-11 animate-pulse-soft rounded-full bg-sage-dark/20 [animation-delay:0.4s]" />
       <span className="relative inline-flex h-6 w-6 rounded-full bg-sage-dark/40 animate-pulse-soft [animation-delay:0.8s]" />
+    </div>
+  )
+}
+
+function RecordingScript({ compact = false }) {
+  return (
+    <div className={`w-full rounded-2xl border border-sage-dark/15 bg-white/70 ${compact ? 'px-4 py-3' : 'px-5 py-5'}`}>
+      <div className="flex flex-col text-left">
+        {RECORDING_SCRIPT.map((line, i) =>
+          line.isDirection ? (
+            <p key={i} className={`italic text-ink-muted ${compact ? 'mb-2 text-[11px]' : 'mb-4 text-sm'}`}>
+              {line.text}
+            </p>
+          ) : (
+            <p key={i} className={`leading-snug text-ink ${compact ? 'py-px text-[12px]' : 'py-1 text-base leading-relaxed'}`}>
+              {line.text}
+            </p>
+          )
+        )}
+      </div>
+      <p className={`leading-relaxed text-ink-muted/70 ${compact ? 'mt-2 text-[10px]' : 'mt-4 text-xs'}`}>
+        {CLONED_VOICE_DISCLAIMER}
+      </p>
     </div>
   )
 }
@@ -122,11 +147,7 @@ export default function VoiceCloneFlow({ onComplete, onClose }) {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-sage-dark/15 bg-white/70 px-5 py-5 text-base leading-relaxed text-ink-muted">
-            We&apos;ll create a voice profile from a short recording. Speak naturally
-            for about 45 seconds — you can read anything, just talk normally. The
-            better the recording, the better your meditation will sound.
-          </div>
+          <RecordingScript />
 
           <ContinueButton
             label="Continue"
@@ -140,61 +161,65 @@ export default function VoiceCloneFlow({ onComplete, onClose }) {
   if (step === 'recording') {
     return (
       <CloneLayout onClose={onClose}>
-        <div className="flex flex-col items-center gap-8 text-center">
+        <div className="flex flex-col gap-2 text-center">
           <div>
-            <h2 className="font-display text-3xl font-medium tracking-tight text-ink">
+            <h2 className="font-display text-2xl font-medium tracking-tight text-ink">
               {isRecording ? 'Recording...' : 'Ready when you are'}
             </h2>
-            <p className="mt-2 text-ink-muted">
+            <p className="mt-1 text-sm text-ink-muted">
               {isRecording
                 ? `Speak naturally (${RECORDING_MIN_SECONDS}–${RECORDING_MAX_SECONDS} seconds)`
                 : 'Tap the microphone to begin'}
             </p>
           </div>
 
-          <p className="font-mono text-4xl font-medium tabular-nums text-ink">
-            {formatTime(elapsedSeconds)}
-          </p>
+          <RecordingScript compact />
 
-          <RecordingWaveform levels={waveformLevels} isActive={isRecording} />
+          <div className="flex flex-col items-center gap-3">
+            <p className="font-mono text-3xl font-medium tabular-nums text-ink">
+              {formatTime(elapsedSeconds)}
+            </p>
 
-          <button
-            type="button"
-            onClick={isRecording ? undefined : startRecording}
-            disabled={isRecording}
-            aria-label={isRecording ? 'Recording in progress' : 'Start recording'}
-            className={`flex h-28 w-28 items-center justify-center rounded-full border-2 transition-all duration-200 ${
-              isRecording
-                ? 'border-sage-dark bg-sage-dark text-white shadow-md'
-                : 'border-sage-dark/25 bg-white/90 text-sage-dark hover:border-sage-dark/50 hover:bg-white'
-            }`}
-          >
-            <MicrophoneIcon className="h-10 w-10" />
-          </button>
+            <RecordingWaveform levels={waveformLevels} isActive={isRecording} />
 
-          {(recorderError || previewError) && (
-            <p className="text-sm text-red-800">{recorderError || previewError}</p>
-          )}
+            <button
+              type="button"
+              onClick={isRecording ? undefined : startRecording}
+              disabled={isRecording}
+              aria-label={isRecording ? 'Recording in progress' : 'Start recording'}
+              className={`flex h-24 w-24 items-center justify-center rounded-full border-2 transition-all duration-200 ${
+                isRecording
+                  ? 'border-sage-dark bg-sage-dark text-white shadow-md'
+                  : 'border-sage-dark/25 bg-white/90 text-sage-dark hover:border-sage-dark/50 hover:bg-white'
+              }`}
+            >
+              <MicrophoneIcon className="h-9 w-9" />
+            </button>
 
-          {isRecording && (
-            <div className="flex w-full flex-col gap-3">
-              {showStopHint && (
-                <p className="text-sm text-ink-muted">
-                  You&apos;ve reached {RECORDING_MAX_SECONDS} seconds — ready to continue?
-                </p>
-              )}
-              <ContinueButton
-                label="Stop and continue"
-                onClick={stopRecording}
-                disabled={!canStopRecording}
-              />
-              {!canStopRecording && (
-                <p className="text-sm text-ink-muted">
-                  Keep going for at least {RECORDING_MIN_SECONDS} seconds
-                </p>
-              )}
-            </div>
-          )}
+            {(recorderError || previewError) && (
+              <p className="text-sm text-red-800">{recorderError || previewError}</p>
+            )}
+
+            {isRecording && (
+              <div className="flex w-full flex-col gap-2">
+                {showStopHint && (
+                  <p className="text-sm text-ink-muted">
+                    You&apos;ve reached {RECORDING_MAX_SECONDS} seconds — ready to continue?
+                  </p>
+                )}
+                <ContinueButton
+                  label="Stop and continue"
+                  onClick={stopRecording}
+                  disabled={!canStopRecording}
+                />
+                {!canStopRecording && (
+                  <p className="text-sm text-ink-muted">
+                    Keep going for at least {RECORDING_MIN_SECONDS} seconds
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </CloneLayout>
     )

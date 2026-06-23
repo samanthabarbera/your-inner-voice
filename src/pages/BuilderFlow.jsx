@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { UNIVERSE_THEME_ID } from '../data/builderOptions'
 import { CUSTOM_VOICE_OPTION_ID } from '../data/voiceRecording'
 import { isVoiceStepComplete } from '../utils/voiceSelection'
 import BuilderLayout from '../components/builder/BuilderLayout'
@@ -21,6 +22,8 @@ export default function BuilderFlow() {
   const [step, setStep] = useState(1)
   const [answers, setAnswers] = useState(initialAnswers)
   const [isGenerating, setIsGenerating] = useState(false)
+
+  const isUniverseTheme = answers.theme === UNIVERSE_THEME_ID
 
   const updateAnswer = (key, value) => {
     setAnswers((prev) => ({ ...prev, [key]: value }))
@@ -66,6 +69,11 @@ export default function BuilderFlow() {
   const handleContinue = () => {
     if (!canContinue()) return
 
+    if (step === 1 && isUniverseTheme) {
+      setStep(3)
+      return
+    }
+
     if (step < 4) {
       setStep((prev) => prev + 1)
       return
@@ -82,6 +90,12 @@ export default function BuilderFlow() {
       />
     )
   }
+
+  // For the universe theme flow (steps 1→3→4), show a 3-step progress display
+  const displayStep = isUniverseTheme
+    ? step === 1 ? 1 : step === 3 ? 2 : 3
+    : step
+  const totalDisplaySteps = isUniverseTheme ? 3 : 4
 
   const stepContent = () => {
     switch (step) {
@@ -122,7 +136,8 @@ export default function BuilderFlow() {
 
   return (
     <BuilderLayout
-      currentStep={step}
+      currentStep={displayStep}
+      totalSteps={totalDisplaySteps}
       footer={
         <ContinueButton onClick={handleContinue} disabled={!canContinue()} />
       }

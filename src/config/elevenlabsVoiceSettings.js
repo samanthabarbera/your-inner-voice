@@ -5,7 +5,6 @@
  * Adjust these values here to tune output app-wide.
  */
 export const ELEVENLABS_VOICE_SETTINGS = {
-  speed: 0.7,
   stability: 0.9,
   similarity_boost: 0.75,
   style: 0.05,

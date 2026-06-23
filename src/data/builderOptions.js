@@ -5,7 +5,10 @@ export const THEMES = [
   { id: 'health', label: 'Health & Healing' },
   { id: 'career', label: 'Career & Purpose' },
   { id: 'letting-go', label: 'Letting Go & Moving On' },
+  { id: 'universe', label: 'Let The Universe Decide', description: 'Surrender to what you need to hear today.' },
 ]
+
+export const UNIVERSE_THEME_ID = 'universe'
 
 export const LENGTHS = [
   { id: '5', label: '5 minutes', minutes: 5 },
@@ -22,30 +25,35 @@ export const VOICES = [
     name: 'Theo',
     voiceId: 'UmQN7jS1Ee8B1czsUtQh',
     description: 'Calm & Grounding',
+    speed: 0.7,
   },
   {
-    id: 'sage',
-    name: 'Sage',
-    voiceId: 'TLeBnGDqmcwGf936zZyW',
-    description: 'Warm & Deep',
+    id: 'rowan',
+    name: 'Rowan',
+    voiceId: 'kLhAstPcnnPxqzk6gS5i',
+    description: 'Gentle, Soft-Spoken & Warm',
+    speed: 0.7,
   },
   {
-    id: 'milo',
-    name: 'Milo',
-    voiceId: 'GUDYcgRAONiI1nXDcNQQ',
-    description: 'Clear & Soothing',
+    id: 'kristen',
+    name: 'Kristen',
+    voiceId: 'KGZeK6FsnWQdrkDHnDNA',
+    description: 'Calm & Comforting',
+    speed: 0.90,
   },
   {
-    id: 'arya',
-    name: 'Arya',
-    voiceId: 'zA6D7RyKdc2EClouEMkP',
-    description: 'ASMR & Soothing',
+    id: 'nicole',
+    name: 'Nicole',
+    voiceId: 'gc5LArFpEOmYx9nYmK9l',
+    description: 'ASMR & Relaxing',
+    speed: 0.85,
   },
   {
-    id: 'caz',
-    name: 'Caz',
-    voiceId: '7dEuJHhweR5AFXA4INkB',
-    description: 'Clear & Confident',
+    id: 'drew',
+    name: 'Drew',
+    voiceId: '65dhNaIr3Y4ovumVtdy0',
+    description: 'Calm & Reassuring',
+    speed: 0.7,
   },
 ]
 

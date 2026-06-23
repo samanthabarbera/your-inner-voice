@@ -1,12 +1,20 @@
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { tmpdir } from 'node:os'
+import { writeFile, readFile, unlink } from 'node:fs/promises'
+import { randomUUID } from 'node:crypto'
 import cors from 'cors'
 import dotenv from 'dotenv'
 import express from 'express'
 import multer from 'multer'
+import Ffmpeg from 'fluent-ffmpeg'
+import ffmpegPath from 'ffmpeg-static'
 import { buildMeditationPrompt } from './src/data/meditationPrompt.js'
 import { ELEVENLABS_VOICE_SETTINGS } from './src/config/elevenlabsVoiceSettings.js'
+import { VOICES } from './src/data/builderOptions.js'
 import { cleanMeditationScript, scriptToLines } from './src/utils/meditationScript.js'
+
+Ffmpeg.setFfmpegPath(ffmpegPath)
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 dotenv.config({ path: join(__dirname, '.env') })
@@ -122,8 +130,53 @@ function stripVbrHeader(mp3) {
   return mp3.slice(frameStart)
 }
 
+const MUSIC_FILE = join(__dirname, 'src/assets/music/SO_AM_114_melodic_loop_krishna_Cmaj.wav')
+const MUSIC_VOLUME = 0.22
+
+/**
+ * Loop the background music track to match the voice audio length, mix it
+ * underneath at MUSIC_VOLUME, and return a single combined MP3 buffer.
+ */
+async function mixMusicUnderVoice(voiceBuffer) {
+  const id = randomUUID()
+  const voicePath = join(tmpdir(), `tune-up-voice-${id}.mp3`)
+  const outputPath = join(tmpdir(), `tune-up-mixed-${id}.mp3`)
+
+  try {
+    await writeFile(voicePath, voiceBuffer)
+
+    await new Promise((resolve, reject) => {
+      Ffmpeg()
+        .input(voicePath)
+        .input(MUSIC_FILE)
+        .inputOptions(['-stream_loop', '-1'])
+        .complexFilter([
+          `[1:a]volume=${MUSIC_VOLUME}[music]`,
+          '[0:a][music]amix=inputs=2:duration=first:normalize=0[out]',
+        ])
+        .outputOptions(['-map', '[out]', '-codec:a', 'libmp3lame', '-q:a', '2'])
+        .output(outputPath)
+        .on('end', resolve)
+        .on('error', reject)
+        .run()
+    })
+
+    return await readFile(outputPath)
+  } finally {
+    await Promise.all([
+      unlink(voicePath).catch(() => {}),
+      unlink(outputPath).catch(() => {}),
+    ])
+  }
+}
+
+// Explicit voice_settings overrides for user-cloned voices.
+// Stability at 0.9 prevents pitch instability common in instant-cloned voices;
+// speed at 0.7 matches the pacing of the preset meditation voices.
+const CLONED_VOICE_SETTINGS = { speed: 0.9, stability: 0.9 }
+
 /** Fetch an MP3 from ElevenLabs for a single line of text. */
-async function callElevenLabsTts(voiceId, text) {
+async function callElevenLabsTts(voiceId, text, voiceSettingsOverride) {
   const response = await fetch(
     `${ELEVENLABS_BASE_URL}/text-to-speech/${voiceId}`,
     {
@@ -137,7 +190,7 @@ async function callElevenLabsTts(voiceId, text) {
         model_id: ELEVENLABS_TTS_MODEL,
         output_format: 'mp3_44100_128',
         apply_text_normalization: 'on',
-        voice_settings: { ...ELEVENLABS_VOICE_SETTINGS },
+        voice_settings: { ...ELEVENLABS_VOICE_SETTINGS, ...voiceSettingsOverride },
       }),
       signal: AbortSignal.timeout(ELEVENLABS_TTS_TIMEOUT_MS),
     },
@@ -162,6 +215,11 @@ async function generateStitchedAudio(voiceId, script) {
   const lines = scriptToLines(script)
   console.log(`[generate-audio] ${lines.length} lines to synthesise`)
 
+  const presetVoice = VOICES.find((v) => v.voiceId === voiceId)
+  const voiceSettingsOverride = presetVoice
+    ? { speed: presetVoice.speed }
+    : CLONED_VOICE_SETTINGS
+
   const mp3Chunks = new Array(lines.length).fill(null)
   let ptr = 0
 
@@ -169,7 +227,7 @@ async function generateStitchedAudio(voiceId, script) {
     while (ptr < lines.length) {
       const i = ptr++
       console.log(`[generate-audio] line ${i + 1}/${lines.length}: "${lines[i]}"`)
-      const raw = await callElevenLabsTts(voiceId, lines[i])
+      const raw = await callElevenLabsTts(voiceId, lines[i], voiceSettingsOverride)
       mp3Chunks[i] = stripVbrHeader(raw)
     }
   }
@@ -256,8 +314,11 @@ app.post('/api/generate-audio', async (req, res) => {
       return res.status(400).json({ error: 'script and voice_id are required.' })
     }
 
-    const mp3Buffer = await generateStitchedAudio(voiceId, script)
-    console.log(`[generate-audio] Done — ${mp3Buffer.length} bytes`)
+    const voiceBuffer = await generateStitchedAudio(voiceId, script)
+    console.log(`[generate-audio] Voice done — ${voiceBuffer.length} bytes, mixing music...`)
+
+    const mp3Buffer = await mixMusicUnderVoice(voiceBuffer)
+    console.log(`[generate-audio] Mixed — ${mp3Buffer.length} bytes`)
 
     res.set('Content-Type', 'audio/mpeg')
     return res.send(mp3Buffer)
