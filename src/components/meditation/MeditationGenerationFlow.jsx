@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useMeditationGeneration } from '../../hooks/useMeditationGeneration'
-import { saveMeditationToLibrary } from '../../lib/meditationLibrary'
-import { blobToDataUrl } from '../../utils/audio'
+import { saveMeditationToCloud } from '../../lib/meditationLibrary'
+import { useAuth } from '../../context/AuthContext'
+import AuthModal from '../AuthModal'
 import ContinueButton from '../builder/ContinueButton'
 import MeditationLoadingScreen from './MeditationLoadingScreen'
 import MeditationPlayer from './MeditationPlayer'
@@ -18,32 +19,51 @@ export default function MeditationGenerationFlow({ answers, onStartOver }) {
     retry,
     title,
   } = useMeditationGeneration(answers)
+  const { user } = useAuth()
   const [showSavePrompt, setShowSavePrompt] = useState(false)
+  const [showAuthModal, setShowAuthModal] = useState(false)
   const [isSaved, setIsSaved] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [saveError, setSaveError] = useState(null)
 
-  const handleSave = async () => {
-    if (!audioBlob || !script) return
+  // When user signs in via the auth modal, attempt the save automatically
+  useEffect(() => {
+    if (user && showAuthModal) {
+      setShowAuthModal(false)
+      performSave(user)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user])
+
+  const performSave = async (currentUser) => {
+    if (!audioBlob || !script || !currentUser) return
 
     setIsSaving(true)
+    setSaveError(null)
 
     try {
-      const audioDataUrl = await blobToDataUrl(audioBlob)
-
-      saveMeditationToLibrary({
+      await saveMeditationToCloud(currentUser, {
         title,
         theme: answers.theme,
         length: answers.length,
-        context: answers.context,
         voice: answers.voice,
         customVoiceId: answers.customVoiceId,
         script,
-        audioDataUrl,
-      })
+      }, audioBlob)
       setIsSaved(true)
+    } catch (err) {
+      setSaveError(err.message ?? 'Could not save your meditation. Please try again.')
     } finally {
       setIsSaving(false)
     }
+  }
+
+  const handleSave = () => {
+    if (!user) {
+      setShowAuthModal(true)
+      return
+    }
+    performSave(user)
   }
 
   if (phase === 'writing') {
@@ -68,7 +88,7 @@ export default function MeditationGenerationFlow({ answers, onStartOver }) {
     return (
       <main className="flex min-h-svh flex-col items-center justify-center px-6 py-16 text-center">
         <div className="flex w-full max-w-md flex-col items-center gap-8">
-          <div className="rounded-2xl border border-sage-dark/15 bg-white/70 px-5 py-6">
+          <div className="rounded-2xl border-2 border-ink/10 bg-canvas-deep px-5 py-6">
             <p className="text-lg leading-relaxed text-ink">
               We had trouble creating your meditation — want to try again?
             </p>
@@ -98,12 +118,23 @@ export default function MeditationGenerationFlow({ answers, onStartOver }) {
 
   if (showSavePrompt) {
     return (
-      <SavePromptScreen
-        isSaved={isSaved}
-        isSaving={isSaving}
-        onSave={handleSave}
-        onStartOver={onStartOver}
-      />
+      <>
+        <SavePromptScreen
+          isSaved={isSaved}
+          isSaving={isSaving}
+          saveError={saveError}
+          onSave={handleSave}
+          onStartOver={onStartOver}
+        />
+        {showAuthModal && (
+          <AuthModal
+            onClose={() => setShowAuthModal(false)}
+            onSuccess={() => {
+              // useEffect will fire when user state updates and call performSave
+            }}
+          />
+        )}
+      </>
     )
   }
 

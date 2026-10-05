@@ -1,7 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { UNIVERSE_THEME_ID } from '../data/builderOptions'
 import { CUSTOM_VOICE_OPTION_ID } from '../data/voiceRecording'
 import { isVoiceStepComplete } from '../utils/voiceSelection'
+import { saveVoiceCloneId, getVoiceCloneId } from '../lib/meditationLibrary'
+import { useAuth } from '../context/AuthContext'
 import BuilderLayout from '../components/builder/BuilderLayout'
 import ContinueButton from '../components/builder/ContinueButton'
 import MeditationGenerationFlow from '../components/meditation/MeditationGenerationFlow'
@@ -19,9 +22,21 @@ const initialAnswers = {
 }
 
 export default function BuilderFlow() {
+  const { user } = useAuth()
+  const navigate = useNavigate()
   const [step, setStep] = useState(1)
   const [answers, setAnswers] = useState(initialAnswers)
   const [isGenerating, setIsGenerating] = useState(false)
+
+  // Load saved voice clone ID for logged-in users
+  useEffect(() => {
+    if (!user) return
+    getVoiceCloneId(user.id).then((voiceId) => {
+      if (voiceId) {
+        setAnswers((prev) => ({ ...prev, customVoiceId: voiceId }))
+      }
+    })
+  }, [user])
 
   const isUniverseTheme = answers.theme === UNIVERSE_THEME_ID
 
@@ -43,12 +58,15 @@ export default function BuilderFlow() {
       voice: CUSTOM_VOICE_OPTION_ID,
       customVoiceId: elevenLabsVoiceId,
     }))
+    if (user) {
+      saveVoiceCloneId(user.id, elevenLabsVoiceId).catch(() => {})
+    }
   }
 
   const handleStartOver = () => {
     setIsGenerating(false)
     setStep(1)
-    setAnswers(initialAnswers)
+    setAnswers((prev) => ({ ...initialAnswers, customVoiceId: prev.customVoiceId }))
   }
 
   const canContinue = () => {
@@ -139,7 +157,16 @@ export default function BuilderFlow() {
       currentStep={displayStep}
       totalSteps={totalDisplaySteps}
       footer={
-        <ContinueButton onClick={handleContinue} disabled={!canContinue()} />
+        <div className="flex flex-col gap-3">
+          <ContinueButton onClick={handleContinue} disabled={!canContinue()} />
+          <button
+            type="button"
+            onClick={() => navigate('/')}
+            className="text-center text-sm font-medium text-ink-muted underline-offset-2 hover:underline"
+          >
+            ← Back to home
+          </button>
+        </div>
       }
     >
       {stepContent()}

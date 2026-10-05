@@ -12,7 +12,7 @@ import ffmpegPath from 'ffmpeg-static'
 import { buildMeditationPrompt } from './src/data/meditationPrompt.js'
 import { ELEVENLABS_VOICE_SETTINGS } from './src/config/elevenlabsVoiceSettings.js'
 import { VOICES } from './src/data/builderOptions.js'
-import { cleanMeditationScript, scriptToLines } from './src/utils/meditationScript.js'
+import { cleanMeditationScript, scriptToLines, scriptToChunks } from './src/utils/meditationScript.js'
 
 Ffmpeg.setFfmpegPath(ffmpegPath)
 
@@ -21,7 +21,7 @@ dotenv.config({ path: join(__dirname, '.env') })
 
 const app = express()
 const upload = multer({ storage: multer.memoryStorage() })
-const PORT = 3001
+const PORT = process.env.PORT ?? 3001
 
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages'
 const MEDITATION_MODEL = 'claude-sonnet-4-6'
@@ -30,7 +30,7 @@ const ELEVENLABS_BASE_URL = 'https://api.elevenlabs.io/v1'
 const ELEVENLABS_TTS_MODEL = 'eleven_multilingual_v2'
 const ELEVENLABS_TTS_TIMEOUT_MS = 120_000
 
-const TTS_CONCURRENCY = 2
+const TTS_CONCURRENCY = 4
 
 // ---------------------------------------------------------------------------
 // Silent MP3 frames
@@ -50,7 +50,19 @@ const SILENT_FRAME = Buffer.concat([
 ])
 const SILENCE_MP3 = Buffer.concat(Array.from({ length: 77 }, () => SILENT_FRAME))
 
-app.use(cors())
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',')
+  : ['http://localhost:5173']
+
+app.get('/api/health', (_req, res) => res.json({ status: 'ok' }))
+
+app.use(cors({
+  origin: (origin, cb) => {
+    // allow server-to-server (no origin) and any explicitly allowed origin
+    if (!origin || allowedOrigins.includes(origin)) return cb(null, true)
+    cb(new Error('CORS: origin not allowed'))
+  },
+}))
 app.use(express.json({ limit: '10mb' }))
 
 function parseApiError(message) {
@@ -306,6 +318,106 @@ app.post('/api/generate-meditation', async (req, res) => {
   }
 })
 
+app.post('/api/preview-voice', async (req, res) => {
+  try {
+    const { voice_id: voiceId, text } = req.body
+
+    if (!voiceId) {
+      return res.status(400).json({ error: 'voice_id is required.' })
+    }
+
+    const previewText = text?.trim() || 'Take a deep breath and allow yourself to relax.'
+    const presetVoice = VOICES.find((v) => v.voiceId === voiceId)
+    const voiceSettingsOverride = presetVoice ? { speed: presetVoice.speed } : CLONED_VOICE_SETTINGS
+
+    const mp3Buffer = await callElevenLabsTts(voiceId, previewText, voiceSettingsOverride)
+
+    res.set('Content-Type', 'audio/mpeg')
+    return res.send(mp3Buffer)
+  } catch (error) {
+    if (error instanceof Error && error.name === 'TimeoutError') {
+      return res.status(504).json({ error: 'ElevenLabs took too long. Please try again.' })
+    }
+    return res.status(500).json({
+      error: error instanceof Error ? error.message : 'Failed to generate preview.',
+    })
+  }
+})
+
+app.post('/api/stream-audio', async (req, res) => {
+  try {
+    const { script, voice_id: voiceId } = req.body
+
+    if (!script?.trim() || !voiceId) {
+      return res.status(400).json({ error: 'script and voice_id are required.' })
+    }
+
+    const lines = scriptToChunks(script)
+    console.log(`[stream-audio] ${lines.length} lines to synthesise`)
+
+    const presetVoice = VOICES.find((v) => v.voiceId === voiceId)
+    const voiceSettingsOverride = presetVoice
+      ? { speed: presetVoice.speed }
+      : CLONED_VOICE_SETTINGS
+
+    res.set('Content-Type', 'audio/mpeg')
+    res.set('Transfer-Encoding', 'chunked')
+    res.set('X-Accel-Buffering', 'no')
+    res.flushHeaders()
+
+    // Process lines with concurrency, streaming each chunk as it completes
+    const mp3Chunks = new Array(lines.length).fill(null)
+    const done = new Array(lines.length).fill(false)
+    let nextToWrite = 0
+    let ptr = 0
+    let failed = false
+
+    const flush = () => {
+      while (nextToWrite < lines.length && done[nextToWrite]) {
+        const chunk = mp3Chunks[nextToWrite]
+        if (chunk && chunk.length > 0) {
+          res.write(stripVbrHeader(chunk))
+          res.write(SILENCE_MP3)
+        }
+        nextToWrite++
+      }
+      if (nextToWrite === lines.length) {
+        res.end()
+      }
+    }
+
+    async function worker() {
+      while (ptr < lines.length && !failed) {
+        const i = ptr++
+        try {
+          console.log(`[stream-audio] line ${i + 1}/${lines.length}: "${lines[i]}"`)
+          mp3Chunks[i] = await callElevenLabsTts(voiceId, lines[i], voiceSettingsOverride)
+          done[i] = true
+          flush()
+        } catch (err) {
+          failed = true
+          console.error(`[stream-audio] line ${i + 1} failed:`, err.message)
+          if (!res.headersSent) {
+            res.status(500).json({ error: err.message })
+          } else {
+            res.end()
+          }
+        }
+      }
+    }
+
+    await Promise.all(Array.from({ length: TTS_CONCURRENCY }, worker))
+  } catch (error) {
+    if (!res.headersSent) {
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Failed to stream audio.',
+      })
+    } else {
+      res.end()
+    }
+  }
+})
+
 app.post('/api/generate-audio', async (req, res) => {
   try {
     const { script, voice_id: voiceId } = req.body
@@ -378,6 +490,17 @@ app.post('/api/clone-voice', upload.single('file'), async (req, res) => {
     })
   }
 })
+
+
+// Serve built frontend in production
+if (process.env.NODE_ENV === 'production') {
+  const { existsSync } = await import('node:fs')
+  if (existsSync(join(__dirname, 'dist'))) {
+    const { default: serveStatic } = await import('serve-static')
+    app.use(serveStatic(join(__dirname, 'dist')))
+    app.get('*', (_req, res) => res.sendFile(join(__dirname, 'dist', 'index.html')))
+  }
+}
 
 const server = app.listen(PORT, () => {
   console.log(`Tune-Up API server running on http://localhost:${PORT}`)

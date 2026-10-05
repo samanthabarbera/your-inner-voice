@@ -40,16 +40,16 @@ function CloneLayout({ children, onClose }) {
 function LoadingPulse() {
   return (
     <div className="relative mx-auto flex h-20 w-20 items-center justify-center" aria-hidden="true">
-      <span className="absolute inline-flex h-16 w-16 animate-pulse-soft rounded-full bg-sage-dark/10" />
-      <span className="absolute inline-flex h-11 w-11 animate-pulse-soft rounded-full bg-sage-dark/20 [animation-delay:0.4s]" />
-      <span className="relative inline-flex h-6 w-6 rounded-full bg-sage-dark/40 animate-pulse-soft [animation-delay:0.8s]" />
+      <span className="absolute inline-flex h-16 w-16 animate-pulse-soft rounded-full bg-[#FF3B6B]/10" />
+      <span className="absolute inline-flex h-11 w-11 animate-pulse-soft rounded-full bg-[#FFD600]/20 [animation-delay:0.4s]" />
+      <span className="relative inline-flex h-6 w-6 rounded-full bg-[#00C2B3]/40 animate-pulse-soft [animation-delay:0.8s]" />
     </div>
   )
 }
 
 function RecordingScript({ compact = false }) {
   return (
-    <div className={`w-full rounded-2xl border border-sage-dark/15 bg-white/70 ${compact ? 'px-4 py-3' : 'px-5 py-5'}`}>
+    <div className={`w-full rounded-2xl border-2 border-ink/10 bg-canvas-deep ${compact ? 'px-4 py-3' : 'px-5 py-5'}`}>
       <div className="flex flex-col text-left">
         {RECORDING_SCRIPT.map((line, i) =>
           line.isDirection ? (
@@ -189,8 +189,8 @@ export default function VoiceCloneFlow({ onComplete, onClose }) {
               aria-label={isRecording ? 'Recording in progress' : 'Start recording'}
               className={`flex h-24 w-24 items-center justify-center rounded-full border-2 transition-all duration-200 ${
                 isRecording
-                  ? 'border-sage-dark bg-sage-dark text-white shadow-md'
-                  : 'border-sage-dark/25 bg-white/90 text-sage-dark hover:border-sage-dark/50 hover:bg-white'
+                  ? 'border-ink bg-ink text-canvas shadow-md'
+                  : 'border-ink/20 bg-canvas-deep text-ink hover:border-ink/40'
               }`}
             >
               <MicrophoneIcon className="h-9 w-9" />
@@ -247,7 +247,7 @@ export default function VoiceCloneFlow({ onComplete, onClose }) {
     return (
       <CloneLayout onClose={onClose}>
         <div className="flex flex-col items-center gap-8 text-center">
-          <div className="rounded-2xl border border-sage-dark/15 bg-white/70 px-5 py-6">
+          <div className="rounded-2xl border-2 border-ink/10 bg-canvas-deep px-5 py-6">
             <p className="text-lg leading-relaxed text-ink">
               We had trouble capturing your voice — want to try again?
             </p>
@@ -267,7 +267,7 @@ export default function VoiceCloneFlow({ onComplete, onClose }) {
       <CloneLayout onClose={onClose}>
         <div className="flex flex-col items-center gap-8 text-center">
           <div
-            className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-sage-dark bg-white/90 text-sage-dark"
+            className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-ink bg-canvas-deep text-ink"
             aria-hidden="true"
           >
             <MicrophoneIcon className="h-7 w-7" />
@@ -282,7 +282,7 @@ export default function VoiceCloneFlow({ onComplete, onClose }) {
             </p>
           </div>
 
-          <div className="flex items-center gap-3 rounded-2xl border border-sage-dark/15 bg-white/70 px-5 py-4">
+          <div className="flex items-center gap-3 rounded-2xl border-2 border-ink/10 bg-canvas-deep px-5 py-4">
             <PlayButton
               isLoading={isPreviewLoading}
               onClick={() =>

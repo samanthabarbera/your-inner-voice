@@ -42,3 +42,30 @@ export function scriptToLines(script) {
     .map((line) => line.trim())
     .filter((line) => line.length > 0)
 }
+
+/**
+ * Merge short script lines into chunks for TTS.
+ * Groups consecutive lines until they reach ~TARGET_CHARS characters,
+ * then starts a new chunk. This cuts the number of ElevenLabs API calls
+ * dramatically (e.g. 95 lines → ~15 chunks).
+ */
+const TARGET_CHARS = 200
+
+export function scriptToChunks(script) {
+  const lines = scriptToLines(script)
+  const chunks = []
+  let current = ''
+
+  for (const line of lines) {
+    if (!current) {
+      current = line
+    } else if (current.length + 1 + line.length <= TARGET_CHARS) {
+      current += ' ' + line
+    } else {
+      chunks.push(current)
+      current = line
+    }
+  }
+  if (current) chunks.push(current)
+  return chunks
+}

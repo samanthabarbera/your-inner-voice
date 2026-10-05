@@ -7,7 +7,7 @@ export default function PlaybackWaveform({ levels, isActive }) {
       {levels.map((level, index) => (
         <span
           key={index}
-          className="w-1.5 rounded-full bg-sage-dark/70 transition-[height] duration-75"
+          className="w-1.5 rounded-full bg-ink/60 transition-[height] duration-75"
           style={{
             height: `${(isActive ? level : 0.15) * 96}px`,
             opacity: isActive ? 0.4 + level * 0.6 : 0.2,

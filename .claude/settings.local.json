@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(git add *)",
+      "Bash(git commit -m 'add 2s SSML breaks between phrases — single ElevenLabs request *)"
+    ]
+  }
+}

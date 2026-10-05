@@ -1,14 +1,10 @@
 import { THEMES, UNIVERSE_THEME_ID } from '../../../data/builderOptions'
 
+const POP_COLORS = ['#FF4E6A', '#00C2C8', '#FF4E6A', '#00C2C8', '#FF4E6A', '#00C2C8', '#FF4E6A', '#00C2C8']
+
 function SparkleIcon() {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      className="h-5 w-5"
-      aria-hidden="true"
-    >
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5" aria-hidden="true">
       <path d="M12 1.5l1.5 4.5 4.5 1.5-4.5 1.5L12 13.5l-1.5-4.5L6 7.5l4.5-1.5z" />
       <path d="M19 14l.75 2.25L22 17l-2.25.75L19 20l-.75-2.25L16 17l2.25-.75z" />
       <path d="M5 14l.75 2.25L8 17l-2.25.75L5 20l-.75-2.25L2 17l2.25-.75z" />
@@ -22,24 +18,31 @@ export default function StepTheme({ selected, onSelect }) {
 
   return (
     <div className="flex flex-1 flex-col">
-      <h2 className="font-display text-3xl font-medium tracking-tight text-ink sm:text-4xl">
+      <h2 className="font-display text-3xl font-normal tracking-tight text-ink sm:text-4xl">
         Choose a theme
       </h2>
       <p className="mt-2 text-ink-muted">What area of life is calling for attention?</p>
 
       <ul className="mt-8 grid gap-3 sm:grid-cols-2">
-        {regularThemes.map((theme) => {
+        {regularThemes.map((theme, i) => {
           const isSelected = selected === theme.id
-
+          const popColor = POP_COLORS[i % POP_COLORS.length]
+          const shadowColor = isSelected
+            ? (popColor === '#FF4E6A' ? '#a8273d' : '#007a80')
+            : 'rgba(0,0,0,0.35)'
           return (
             <li key={theme.id}>
               <button
                 type="button"
                 onClick={() => onSelect(theme.id)}
-                className={`w-full rounded-2xl border px-4 py-4 text-left text-base font-medium transition-all duration-200 ${
+                style={isSelected
+                  ? { background: popColor, borderColor: popColor, '--shadow-color': shadowColor }
+                  : { borderLeftColor: popColor, borderLeftWidth: '4px' }
+                }
+                className={`card-press${isSelected ? ' card-selected' : ''} w-full rounded-2xl border-2 px-4 py-4 text-left text-base font-medium ${
                   isSelected
-                    ? 'border-sage-dark bg-white/90 text-ink shadow-sm'
-                    : 'border-sage-dark/15 bg-white/50 text-ink-muted hover:border-sage-dark/30 hover:bg-white/70'
+                    ? 'text-white'
+                    : 'border-white/10 bg-white/8 text-ink'
                 }`}
               >
                 {theme.label}
@@ -53,33 +56,25 @@ export default function StepTheme({ selected, onSelect }) {
             <button
               type="button"
               onClick={() => onSelect(universeTheme.id)}
-              className={`w-full rounded-2xl border px-5 py-5 text-left transition-all duration-200 ${
+              style={selected === universeTheme.id
+                ? { background: '#FF4E6A', borderColor: '#FF4E6A' }
+                : { borderLeftColor: '#FF4E6A', borderLeftWidth: '4px' }
+              }
+              className={`card-press${selected === universeTheme.id ? ' card-selected' : ''} w-full rounded-2xl border-2 px-5 py-5 text-left ${
                 selected === universeTheme.id
-                  ? 'border-sage-dark bg-white/90 shadow-sm'
-                  : 'border-sage-dark/20 bg-white/50 hover:border-sage-dark/35 hover:bg-white/70'
+                  ? ''
+                  : 'border-white/10 bg-white/8'
               }`}
             >
               <span className="flex items-center gap-2.5">
-                <span
-                  className={`transition-colors duration-200 ${
-                    selected === universeTheme.id ? 'text-sage-dark' : 'text-ink-muted'
-                  }`}
-                >
+                <span className={selected === universeTheme.id ? 'text-white' : 'text-ink-muted'}>
                   <SparkleIcon />
                 </span>
-                <span
-                  className={`text-base font-medium transition-colors duration-200 ${
-                    selected === universeTheme.id ? 'text-ink' : 'text-ink-muted'
-                  }`}
-                >
+                <span className={`text-base font-medium ${selected === universeTheme.id ? 'text-white' : 'text-ink'}`}>
                   {universeTheme.label}
                 </span>
               </span>
-              <p
-                className={`mt-1 ml-7 text-sm transition-colors duration-200 ${
-                  selected === universeTheme.id ? 'text-ink-muted' : 'text-ink-muted/70'
-                }`}
-              >
+              <p className={`mt-1 ml-7 text-sm ${selected === universeTheme.id ? 'text-white/70' : 'text-ink-muted'}`}>
                 {universeTheme.description}
               </p>
             </button>

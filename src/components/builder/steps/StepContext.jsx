@@ -1,7 +1,7 @@
 export default function StepContext({ value, onChange }) {
   return (
     <div className="flex flex-1 flex-col">
-      <h2 className="font-display text-3xl font-medium tracking-tight text-ink sm:text-4xl">
+      <h2 className="font-display text-3xl font-normal tracking-tight text-ink sm:text-4xl">
         Tell us what&apos;s going on
       </h2>
       <p className="mt-2 text-ink-muted">
@@ -13,7 +13,13 @@ export default function StepContext({ value, onChange }) {
         onChange={(event) => onChange(event.target.value)}
         placeholder="e.g. going through a breakup, stressed about money, feeling stuck"
         rows={5}
-        className="mt-8 w-full resize-none rounded-2xl border border-sage-dark/15 bg-white/60 px-4 py-4 text-base leading-relaxed text-ink placeholder:text-ink-muted/50 transition-colors focus:border-sage-dark/40 focus:bg-white/90 focus:outline-none"
+        className="mt-8 w-full resize-none rounded-2xl border-2 px-4 py-4 text-base leading-relaxed text-ink placeholder:text-ink/30 transition-colors focus:outline-none"
+        style={{
+          background: 'rgba(255,255,255,0.08)',
+          borderColor: value ? '#FF4E6A' : 'rgba(232,248,248,0.15)',
+        }}
+        onFocus={e => e.target.style.borderColor = '#FF4E6A'}
+        onBlur={e => e.target.style.borderColor = value ? '#FF4E6A' : 'rgba(232,248,248,0.15)'}
       />
     </div>
   )

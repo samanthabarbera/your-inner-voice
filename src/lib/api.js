@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:3001/api'
+const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3001/api'
 
 async function readErrorMessage(response) {
   try {
@@ -68,4 +68,41 @@ export async function createInstantVoiceClone(audioBlob, signal) {
 
   const data = await response.json()
   return data.voice_id
+}
+
+/**
+ * @returns {Promise<Blob>}
+ */
+export async function previewVoice(voiceId, text, signal) {
+  const response = await fetch(`${API_BASE}/preview-voice`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ voice_id: voiceId, text }),
+    signal,
+  })
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response))
+  }
+
+  return response.blob()
+}
+
+/**
+ * Returns a fetch Response whose body streams MP3 chunks as they are synthesised.
+ * @returns {Promise<Response>}
+ */
+export async function streamMeditationAudio(script, voiceId, signal) {
+  const response = await fetch(`${API_BASE}/stream-audio`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ script, voice_id: voiceId }),
+    signal,
+  })
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response))
+  }
+
+  return response
 }

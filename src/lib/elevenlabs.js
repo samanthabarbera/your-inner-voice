@@ -1,12 +1,22 @@
 import {
   generateMeditationAudio,
+  streamMeditationAudio,
+  previewVoice,
   createInstantVoiceClone,
 } from './api.js'
 
 export async function textToSpeech(voiceId, text, signal) {
-  return generateMeditationAudio(text, voiceId, signal)
+  return previewVoice(voiceId, text, signal)
+}
+
+export async function generateFullAudio(voiceId, script, signal) {
+  return generateMeditationAudio(script, voiceId, signal)
+}
+
+export async function streamFullAudio(voiceId, script, signal) {
+  return streamMeditationAudio(script, voiceId, signal)
 }
 
 export const fetchVoicePreview = textToSpeech
-export const generateMeditationSpeech = textToSpeech
+export const generateMeditationSpeech = generateFullAudio
 export { createInstantVoiceClone }

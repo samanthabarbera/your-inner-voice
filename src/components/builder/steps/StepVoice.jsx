@@ -8,6 +8,8 @@ import { useVoicePreview } from '../../../hooks/useVoicePreview'
 import VoiceCloneFlow from '../../voice-clone/VoiceCloneFlow'
 import MicrophoneIcon from '../../voice-clone/MicrophoneIcon'
 import VoiceOptionCard from '../VoiceOptionCard'
+const POP_COLORS = ['#FF4E6A', '#00C2C8', '#FF4E6A']
+
 
 export default function StepVoice({
   selected,
@@ -55,7 +57,7 @@ export default function StepVoice({
         )}
 
         <ul className="mt-8 flex flex-col gap-3">
-          {VOICES.map((voice) => {
+          {VOICES.map((voice, i) => {
             const isSelected = selected === voice.id
             const isLoading = loadingVoiceId === voice.id
             const isPlaying = playingVoiceId === voice.id
@@ -70,6 +72,7 @@ export default function StepVoice({
                   isPlaying={isPlaying}
                   title={voice.name}
                   description={voice.description}
+                  popColor={POP_COLORS[i % POP_COLORS.length]}
                 />
               </li>
             )
@@ -87,8 +90,8 @@ export default function StepVoice({
                 <div
                   className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border ${
                     isCustomSelected
-                      ? 'border-sage-dark/30 bg-sage-dark/10 text-sage-dark'
-                      : 'border-sage-dark/20 bg-white/80 text-sage-dark'
+                      ? 'border-white/30 bg-white/10 text-ink'
+                      : 'border-white/15 bg-white/8 text-ink'
                   }`}
                   aria-hidden="true"
                 >
@@ -103,7 +106,7 @@ export default function StepVoice({
           <button
             type="button"
             onClick={() => setShowCloneFlow(true)}
-            className="mt-4 text-sm font-medium text-sage-dark underline-offset-2 hover:underline"
+            className="mt-4 text-sm font-medium text-ink underline underline-offset-2"
           >
             Record your voice again
           </button>

@@ -1,6 +1,8 @@
 import { TOTAL_STEPS } from '../../data/builderOptions'
 
 export default function ProgressIndicator({ currentStep, totalSteps = TOTAL_STEPS }) {
+  const popColors = ['#FF4E6A', '#00C2C8', '#FF4E6A', '#00C2C8']
+
   return (
     <div
       className="flex w-full gap-1.5"
@@ -14,13 +16,16 @@ export default function ProgressIndicator({ currentStep, totalSteps = TOTAL_STEP
         const stepNumber = index + 1
         const isComplete = stepNumber < currentStep
         const isCurrent = stepNumber === currentStep
+        const color = popColors[(index) % popColors.length]
 
         return (
           <div
             key={stepNumber}
-            className={`h-1 flex-1 rounded-full transition-colors duration-300 ${
-              isComplete || isCurrent ? 'bg-sage-dark' : 'bg-sage-dark/15'
-            } ${isCurrent ? 'opacity-100' : isComplete ? 'opacity-70' : 'opacity-100'}`}
+            className="h-1 flex-1 rounded-full transition-all duration-300"
+            style={{
+              background: isComplete || isCurrent ? color : 'rgba(232,248,248,0.3)',
+              opacity: isComplete || isCurrent ? 1 : 0.12,
+            }}
           />
         )
       })}
