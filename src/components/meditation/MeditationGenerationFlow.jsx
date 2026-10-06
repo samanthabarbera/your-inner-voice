@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useMeditationGeneration } from '../../hooks/useMeditationGeneration'
 import { saveMeditationToCloud } from '../../lib/meditationLibrary'
+import { stashPendingMeditation } from '../../lib/pendingSave'
 import { useAuth } from '../../context/AuthContext'
 import AuthModal from '../AuthModal'
 import ContinueButton from '../builder/ContinueButton'
@@ -136,6 +137,15 @@ export default function MeditationGenerationFlow({ answers, onStartOver }) {
         />
         {showAuthModal && (
           <AuthModal
+            oauthRedirectPath="/my-meditations"
+            beforeOAuth={() => stashPendingMeditation({
+              title,
+              theme: answers.theme,
+              length: answers.length,
+              voice: answers.voice,
+              customVoiceId: answers.customVoiceId,
+              script,
+            }, audioBlob)}
             onClose={() => setShowAuthModal(false)}
             onSuccess={() => {
               // useEffect will fire when user state updates and call performSave

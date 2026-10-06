@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { getMeditations, deleteMeditation } from '../lib/meditationLibrary'
+import { getMeditations, deleteMeditation, saveMeditationToCloud } from '../lib/meditationLibrary'
+import { takePendingMeditation, putBackPendingMeditation } from '../lib/pendingSave'
 import { THEMES, VOICES } from '../data/builderOptions'
 import { CUSTOM_VOICE_OPTION_ID } from '../data/voiceRecording'
 import MeditationPlayer from '../components/meditation/MeditationPlayer'
@@ -32,6 +33,7 @@ export default function MyMeditationsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [playing, setPlaying] = useState(null)
+  const [notice, setNotice] = useState(null)
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -41,10 +43,29 @@ export default function MyMeditationsPage() {
 
   useEffect(() => {
     if (!user) return
-    getMeditations()
-      .then(setMeditations)
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false))
+    let alive = true
+    ;(async () => {
+      // A meditation made before signing in with Google is waiting to be saved.
+      const pending = await takePendingMeditation()
+      if (pending) {
+        try {
+          await saveMeditationToCloud(user, pending.meditation, pending.audioBlob)
+          if (alive) setNotice('Your meditation was saved.')
+        } catch (err) {
+          await putBackPendingMeditation(pending)
+          if (alive) setError(err.message ?? 'Could not save your meditation.')
+        }
+      }
+      try {
+        const list = await getMeditations()
+        if (alive) setMeditations(list)
+      } catch (err) {
+        if (alive) setError(err.message)
+      } finally {
+        if (alive) setLoading(false)
+      }
+    })()
+    return () => { alive = false }
   }, [user])
 
   const handleDelete = async (id) => {
@@ -102,6 +123,12 @@ export default function MyMeditationsPage() {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
         </button>
       </div>
+
+      {notice && (
+        <p className="mt-6 rounded-2xl bg-[#3BE07A] px-4 py-3 text-sm font-medium text-[#0B0B0C]">
+          {notice}
+        </p>
+      )}
 
       {loading && (
         <p className="mt-10 text-center text-ink-muted">Loading...</p>
