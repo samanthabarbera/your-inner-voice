@@ -115,7 +115,7 @@ export default function MeditationPlayer({ audioUrl, title, theme, meta, onEnded
           </div>
           <div className="mt-2 flex justify-between text-sm tabular-nums text-ink-muted">
             <span>{formatTime(currentTime)}</span>
-            <span>{formatTime(duration)}</span>
+            <span>{duration > 0 ? formatTime(duration) : '--:--'}</span>
           </div>
         </div>
 

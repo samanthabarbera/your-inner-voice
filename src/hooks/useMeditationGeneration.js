@@ -5,23 +5,35 @@ import { getThemeLabel } from '../utils/builderAnswers'
 import { getElevenLabsVoiceId } from '../utils/voiceSelection'
 
 /**
- * Pipes a streaming /api/stream-audio Response into a MediaSource object URL.
- * Calls onFirstChunk(url) as soon as the first MP3 bytes arrive so the player
- * can start before the full audio is downloaded.
+ * Pipes a streaming /api/stream-audio Response into a playable URL.
  *
- * Returns a Promise that resolves to the same objectURL once streaming is complete,
- * and also collects a Blob of the full audio for saving.
+ * With MediaSource support (Chrome, desktop Safari, Firefox) playback can start
+ * as soon as the first MP3 bytes arrive. Note: a MediaSource only fires
+ * `sourceopen` once its object URL is attached to an <audio> element, so we
+ * must hand the URL to the player (onFirstChunk) BEFORE waiting on sourceopen —
+ * waiting first deadlocks (the player never mounts, sourceopen never fires).
+ *
+ * Without MediaSource (e.g. iPhone Safari) we buffer the whole stream into a Blob.
+ *
+ * Resolves to { url, blob } once the full audio has been received.
  */
 async function streamToMediaSource(response, onFirstChunk, signal) {
-  // Collect chunks for later saving
   const allChunks = []
+  const reader = response.body.getReader()
 
-  if (!window.MediaSource || !MediaSource.isTypeSupported('audio/mpeg')) {
-    // Fallback: buffer everything then hand back a blob URL
-    const reader = response.body.getReader()
+  const readNext = async () => {
+    if (signal?.aborted) throw new DOMException('Aborted', 'AbortError')
+    return reader.read()
+  }
+
+  const canStream =
+    typeof window !== 'undefined' &&
+    window.MediaSource &&
+    MediaSource.isTypeSupported('audio/mpeg')
+
+  if (!canStream) {
     while (true) {
-      if (signal?.aborted) throw new DOMException('Aborted', 'AbortError')
-      const { done, value } = await reader.read()
+      const { done, value } = await readNext()
       if (done) break
       allChunks.push(value)
     }
@@ -31,79 +43,72 @@ async function streamToMediaSource(response, onFirstChunk, signal) {
     return { url, blob }
   }
 
+  // Wait for the first bytes so the player appears only when there's audio to play.
+  const first = await readNext()
+  if (first.done) throw new Error('The audio stream was empty.')
+  allChunks.push(first.value)
+
+  const ms = new MediaSource()
+  const url = URL.createObjectURL(ms)
+
   return new Promise((resolve, reject) => {
-    const ms = new MediaSource()
-    const url = URL.createObjectURL(ms)
-    let sb
-    let firstChunkFired = false
-    const queue = []
-    let appending = false
+    const queue = [first.value]
     let streamDone = false
+    let finished = false
+    let sb = null
 
-    const tryAppend = () => {
-      if (appending || queue.length === 0 || sb.updating) return
-      appending = true
-      const chunk = queue.shift()
-      try {
-        sb.appendBuffer(chunk)
-      } catch {
-        appending = false
-      }
+    const finish = () => {
+      if (finished) return
+      finished = true
+      resolve({ url, blob: new Blob(allChunks, { type: 'audio/mpeg' }) })
     }
 
-    const tryEnd = () => {
-      if (streamDone && queue.length === 0 && !sb.updating && ms.readyState === 'open') {
-        try { ms.endOfStream() } catch { /* ignore */ }
-        const blob = new Blob(allChunks, { type: 'audio/mpeg' })
-        resolve({ url, blob })
-      }
-    }
-
-    ms.addEventListener('sourceopen', async () => {
-      try {
-        sb = ms.addSourceBuffer('audio/mpeg')
-      } catch {
-        URL.revokeObjectURL(url)
-        // Fallback to blob
-        const reader = response.body.getReader()
-        while (true) {
-          if (signal?.aborted) { reject(new DOMException('Aborted', 'AbortError')); return }
-          const { done, value } = await reader.read()
-          if (done) break
-          allChunks.push(value)
+    const pump = () => {
+      if (!sb || sb.updating) return
+      if (queue.length > 0) {
+        try {
+          sb.appendBuffer(queue.shift())
+        } catch (e) {
+          reject(e)
         }
-        const blob = new Blob(allChunks, { type: 'audio/mpeg' })
-        const blobUrl = URL.createObjectURL(blob)
-        onFirstChunk(blobUrl, blob)
-        resolve({ url: blobUrl, blob })
         return
       }
-
-      sb.addEventListener('updateend', () => {
-        appending = false
-        if (!firstChunkFired && allChunks.length > 0) {
-          firstChunkFired = true
-          const partialBlob = new Blob(allChunks, { type: 'audio/mpeg' })
-          onFirstChunk(url, partialBlob)
+      if (streamDone) {
+        if (ms.readyState === 'open') {
+          try { ms.endOfStream() } catch { /* ignore */ }
         }
-        tryAppend()
-        tryEnd()
-      })
+        finish()
+      }
+    }
 
+    ms.addEventListener('sourceopen', () => {
+      if (sb) return
       try {
-        const reader = response.body.getReader()
+        sb = ms.addSourceBuffer('audio/mpeg')
+      } catch (e) {
+        reject(e)
+        return
+      }
+      sb.addEventListener('updateend', pump)
+      pump()
+    }, { once: true })
+
+    // Hand the URL to the player now — attaching it is what opens the MediaSource.
+    onFirstChunk(url, null)
+
+    ;(async () => {
+      try {
         while (true) {
-          if (signal?.aborted) { reject(new DOMException('Aborted', 'AbortError')); return }
-          const { done, value } = await reader.read()
-          if (done) { streamDone = true; tryEnd(); break }
+          const { done, value } = await readNext()
+          if (done) { streamDone = true; pump(); break }
           allChunks.push(value)
           queue.push(value)
-          tryAppend()
+          pump()
         }
       } catch (e) {
-        if (!signal?.aborted) reject(e)
+        if (e?.name !== 'AbortError') reject(e)
       }
-    })
+    })()
   })
 }
 
@@ -166,7 +171,7 @@ export function useMeditationGeneration(answers) {
         if (runId !== runIdRef.current) return
         audioUrlRef.current = url
         setAudioUrl(url)
-        setAudioBlob(partialBlob)
+        if (partialBlob) setAudioBlob(partialBlob)
         setPhase('ready')
       }
 

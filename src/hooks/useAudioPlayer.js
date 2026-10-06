@@ -24,7 +24,8 @@ export function useAudioPlayer(audioUrl, { autoPlay = true, onEnded } = {}) {
     const onPlay = () => setIsPlaying(true)
     const onPause = () => setIsPlaying(false)
     const onTimeUpdate = () => setCurrentTime(audio.currentTime)
-    const onLoadedMetadata = () => setDuration(audio.duration || 0)
+    // Streamed audio reports Infinity until the stream ends, then fires durationchange.
+    const onLoadedMetadata = () => setDuration(Number.isFinite(audio.duration) ? audio.duration : 0)
     const onEnded = () => {
       setIsPlaying(false)
       onEndedRef.current?.()
@@ -34,6 +35,7 @@ export function useAudioPlayer(audioUrl, { autoPlay = true, onEnded } = {}) {
     audio.addEventListener('pause', onPause)
     audio.addEventListener('timeupdate', onTimeUpdate)
     audio.addEventListener('loadedmetadata', onLoadedMetadata)
+    audio.addEventListener('durationchange', onLoadedMetadata)
     audio.addEventListener('ended', onEnded)
 
     if (autoPlay) {
@@ -46,6 +48,7 @@ export function useAudioPlayer(audioUrl, { autoPlay = true, onEnded } = {}) {
       audio.removeEventListener('pause', onPause)
       audio.removeEventListener('timeupdate', onTimeUpdate)
       audio.removeEventListener('loadedmetadata', onLoadedMetadata)
+      audio.removeEventListener('durationchange', onLoadedMetadata)
       audio.removeEventListener('ended', onEnded)
       audioRef.current = null
     }
