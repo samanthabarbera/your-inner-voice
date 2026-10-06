@@ -56,12 +56,23 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }))
 
-app.use(cors({
-  origin: (origin, cb) => {
-    // allow server-to-server (no origin) and any explicitly allowed origin
-    if (!origin || allowedOrigins.includes(origin)) return cb(null, true)
-    cb(new Error('CORS: origin not allowed'))
-  },
+function isSameOrigin(origin, req) {
+  try {
+    return new URL(origin).host === req.get('host')
+  } catch {
+    return false
+  }
+}
+
+app.use(cors((req, cb) => {
+  const origin = req.header('Origin')
+  // allow server-to-server (no origin), the site itself (same-origin requests —
+  // e.g. the browser loading /assets/*.js as a module), and any explicitly
+  // allowed origin (e.g. a separately hosted frontend)
+  if (!origin || isSameOrigin(origin, req) || allowedOrigins.includes(origin)) {
+    return cb(null, { origin: true })
+  }
+  cb(new Error('CORS: origin not allowed'))
 }))
 app.use(express.json({ limit: '10mb' }))
 
