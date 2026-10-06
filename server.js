@@ -498,7 +498,7 @@ if (process.env.NODE_ENV === 'production') {
   if (existsSync(join(__dirname, 'dist'))) {
     const { default: serveStatic } = await import('serve-static')
     app.use(serveStatic(join(__dirname, 'dist')))
-    app.get('*', (_req, res) => res.sendFile(join(__dirname, 'dist', 'index.html')))
+    app.get('/*', (_req, res) => res.sendFile(join(__dirname, 'dist', 'index.html')))
   }
 }
 
