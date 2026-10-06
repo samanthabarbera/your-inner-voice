@@ -151,8 +151,8 @@ const MUSIC_VOLUME = 0.22
  */
 async function mixMusicUnderVoice(voiceBuffer) {
   const id = randomUUID()
-  const voicePath = join(tmpdir(), `tune-up-voice-${id}.mp3`)
-  const outputPath = join(tmpdir(), `tune-up-mixed-${id}.mp3`)
+  const voicePath = join(tmpdir(), `yiv-voice-${id}.mp3`)
+  const outputPath = join(tmpdir(), `yiv-mixed-${id}.mp3`)
 
   try {
     await writeFile(voicePath, voiceBuffer)
@@ -453,8 +453,8 @@ app.post('/api/clone-voice', upload.single('file'), async (req, res) => {
     }
 
     const formData = new FormData()
-    formData.append('name', `Tune-Up Voice ${Date.now()}`)
-    formData.append('description', 'Personal voice profile created in Tune-Up')
+    formData.append('name', `Your Inner Voice ${Date.now()}`)
+    formData.append('description', 'Personal voice profile created in Your Inner Voice')
     formData.append(
       'files',
       new Blob([req.file.buffer], { type: req.file.mimetype }),
@@ -503,7 +503,7 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 const server = app.listen(PORT, () => {
-  console.log(`Tune-Up API server running on http://localhost:${PORT}`)
+  console.log(`Your Inner Voice API server running on http://localhost:${PORT}`)
   console.log(
     `API keys loaded — Anthropic: ${process.env.ANTHROPIC_API_KEY ? 'yes' : 'no'}, ElevenLabs: ${process.env.ELEVENLABS_API_KEY ? 'yes' : 'no'}`,
   )

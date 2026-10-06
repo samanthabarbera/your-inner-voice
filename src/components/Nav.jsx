@@ -14,7 +14,7 @@ export default function Nav() {
   return (
     <nav className="flex items-center justify-between px-6 py-4">
       <Link to="/" className="font-display text-xl font-normal tracking-tight text-ink">
-        Tune-Up
+        Your Inner Voice
       </Link>
 
       <div className="flex items-center gap-4">

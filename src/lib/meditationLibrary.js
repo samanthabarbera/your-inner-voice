@@ -1,6 +1,6 @@
 import { supabase } from './supabase'
 
-const LIBRARY_STORAGE_KEY = 'tune-up-meditation-library'
+const LIBRARY_STORAGE_KEY = 'your-inner-voice-library'
 
 export function saveMeditationToLibrary(meditation) {
   const existing = JSON.parse(
