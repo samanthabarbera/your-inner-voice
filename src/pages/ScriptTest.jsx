@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { THEMES, LENGTHS } from '../data/builderOptions'
 
-const API_BASE = (import.meta.env.VITE_API_URL ?? 'http://localhost:3001/api').replace(/\/api$/, '')
+const API_BASE = (import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:3001/api' : '/api')).replace(/\/api$/, '')
 
 export default function ScriptTest() {
   const [theme, setTheme] = useState(THEMES[0].id)

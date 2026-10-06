@@ -1,4 +1,9 @@
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3001/api'
+// In production the API is served by the same Express server as the site, so a
+// relative path always works. Locally, Vite runs on :5173 and the API on :3001.
+// VITE_API_URL can still override either (e.g. a separately hosted frontend).
+const API_BASE =
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.DEV ? 'http://localhost:3001/api' : '/api')
 
 async function readErrorMessage(response) {
   try {
