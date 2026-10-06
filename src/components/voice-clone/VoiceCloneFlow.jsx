@@ -22,7 +22,7 @@ function formatTime(seconds) {
 
 function CloneLayout({ children, onClose }) {
   return (
-    <div className="fixed inset-0 z-50 flex flex-col overflow-y-auto bg-[#f4f6f2]/95 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex flex-col overflow-y-auto bg-[#0B0B0C]/97 backdrop-blur-sm">
       <div className="mx-auto flex w-full max-w-lg flex-1 flex-col px-6 py-8">
         <button
           type="button"
@@ -40,16 +40,16 @@ function CloneLayout({ children, onClose }) {
 function LoadingPulse() {
   return (
     <div className="relative mx-auto flex h-20 w-20 items-center justify-center" aria-hidden="true">
-      <span className="absolute inline-flex h-16 w-16 animate-pulse-soft rounded-full bg-[#FF3B6B]/10" />
-      <span className="absolute inline-flex h-11 w-11 animate-pulse-soft rounded-full bg-[#FFD600]/20 [animation-delay:0.4s]" />
-      <span className="relative inline-flex h-6 w-6 rounded-full bg-[#00C2B3]/40 animate-pulse-soft [animation-delay:0.8s]" />
+      <span className="absolute inline-flex h-16 w-16 animate-pulse-soft rounded-full bg-[#F26BB5]/20" />
+      <span className="absolute inline-flex h-11 w-11 animate-pulse-soft rounded-full bg-[#EDF23A]/30 [animation-delay:0.4s]" />
+      <span className="relative inline-flex h-6 w-6 rounded-full bg-[#3BE07A]/60 animate-pulse-soft [animation-delay:0.8s]" />
     </div>
   )
 }
 
 function RecordingScript({ compact = false }) {
   return (
-    <div className={`w-full rounded-2xl border-2 border-ink/10 bg-canvas-deep ${compact ? 'px-4 py-3' : 'px-5 py-5'}`}>
+    <div className={`w-full rounded-3xl bg-canvas-deep ${compact ? 'px-4 py-3' : 'px-5 py-5'}`}>
       <div className="flex flex-col text-left">
         {RECORDING_SCRIPT.map((line, i) =>
           line.isDirection ? (
@@ -139,7 +139,7 @@ export default function VoiceCloneFlow({ onComplete, onClose }) {
       <CloneLayout onClose={onClose}>
         <div className="flex flex-col gap-8">
           <div>
-            <h2 className="font-display text-3xl font-medium tracking-tight text-ink">
+            <h2 className="font-display text-3xl font-medium uppercase leading-none tracking-tight text-ink">
               Record your voice
             </h2>
             <p className="mt-2 text-ink-muted">
@@ -163,7 +163,7 @@ export default function VoiceCloneFlow({ onComplete, onClose }) {
       <CloneLayout onClose={onClose}>
         <div className="flex flex-col gap-2 text-center">
           <div>
-            <h2 className="font-display text-2xl font-medium tracking-tight text-ink">
+            <h2 className="font-display text-2xl font-medium uppercase leading-none tracking-tight text-ink">
               {isRecording ? 'Recording...' : 'Ready when you are'}
             </h2>
             <p className="mt-1 text-sm text-ink-muted">
@@ -189,15 +189,15 @@ export default function VoiceCloneFlow({ onComplete, onClose }) {
               aria-label={isRecording ? 'Recording in progress' : 'Start recording'}
               className={`flex h-24 w-24 items-center justify-center rounded-full border-2 transition-all duration-200 ${
                 isRecording
-                  ? 'border-ink bg-ink text-canvas shadow-md'
-                  : 'border-ink/20 bg-canvas-deep text-ink hover:border-ink/40'
+                  ? 'border-[#F26BB5] bg-[#F26BB5] text-[#0B0B0C]'
+                  : 'border-white bg-white text-[#0B0B0C] hover:bg-[#E9E9EC]'
               }`}
             >
               <MicrophoneIcon className="h-9 w-9" />
             </button>
 
             {(recorderError || previewError) && (
-              <p className="text-sm text-red-800">{recorderError || previewError}</p>
+              <p className="text-sm font-medium text-[#FF9B4A]">{recorderError || previewError}</p>
             )}
 
             {isRecording && (
@@ -231,7 +231,7 @@ export default function VoiceCloneFlow({ onComplete, onClose }) {
         <div className="flex flex-col items-center gap-8 text-center">
           <LoadingPulse />
           <div>
-            <h2 className="font-display text-3xl font-medium tracking-tight text-ink">
+            <h2 className="font-display text-3xl font-medium uppercase leading-none tracking-tight text-ink">
               Creating your voice profile...
             </h2>
             <p className="mt-3 text-base leading-relaxed text-ink-muted">
@@ -247,7 +247,7 @@ export default function VoiceCloneFlow({ onComplete, onClose }) {
     return (
       <CloneLayout onClose={onClose}>
         <div className="flex flex-col items-center gap-8 text-center">
-          <div className="rounded-2xl border-2 border-ink/10 bg-canvas-deep px-5 py-6">
+          <div className="rounded-3xl bg-canvas-deep px-5 py-6">
             <p className="text-lg leading-relaxed text-ink">
               We had trouble capturing your voice — want to try again?
             </p>
@@ -267,14 +267,14 @@ export default function VoiceCloneFlow({ onComplete, onClose }) {
       <CloneLayout onClose={onClose}>
         <div className="flex flex-col items-center gap-8 text-center">
           <div
-            className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-ink bg-canvas-deep text-ink"
+            className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-[#3BE07A] bg-[#3BE07A] text-[#0B0B0C]"
             aria-hidden="true"
           >
             <MicrophoneIcon className="h-7 w-7" />
           </div>
 
           <div>
-            <h2 className="font-display text-3xl font-medium tracking-tight text-ink">
+            <h2 className="font-display text-3xl font-medium uppercase leading-none tracking-tight text-ink">
               Your voice is ready
             </h2>
             <p className="mt-3 max-w-sm text-base leading-relaxed text-ink-muted">
@@ -282,7 +282,7 @@ export default function VoiceCloneFlow({ onComplete, onClose }) {
             </p>
           </div>
 
-          <div className="flex items-center gap-3 rounded-2xl border-2 border-ink/10 bg-canvas-deep px-5 py-4">
+          <div className="flex items-center gap-3 rounded-3xl bg-canvas-deep px-5 py-4">
             <PlayButton
               isLoading={isPreviewLoading}
               onClick={() =>
@@ -299,7 +299,7 @@ export default function VoiceCloneFlow({ onComplete, onClose }) {
           </div>
 
           {previewError && (
-            <p className="text-sm text-red-800">{previewError}</p>
+            <p className="text-sm font-medium text-[#FF9B4A]">{previewError}</p>
           )}
 
           <ContinueButton label="Use this voice" onClick={handleDone} />

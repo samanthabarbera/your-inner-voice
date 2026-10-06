@@ -9,10 +9,10 @@ export default function PlayButton({ onClick, isLoading = false, disabled = fals
       disabled={disabled || isLoading}
       aria-label={isLoading ? 'Loading preview' : 'Preview voice'}
       aria-busy={isLoading}
-      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-wait disabled:opacity-70 ${
+      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-wait disabled:opacity-70 ${
         isSelected
-          ? 'border-white/30 bg-white/20 text-white hover:bg-white/30 focus-visible:outline-white'
-          : 'border-white/15 bg-white/8 text-ink hover:border-white/30 focus-visible:outline-white'
+          ? 'bg-[#0B0B0C] text-white'
+          : 'bg-white text-[#0B0B0C] hover:bg-[#E9E9EC]'
       }`}
     >
       {isLoading ? (

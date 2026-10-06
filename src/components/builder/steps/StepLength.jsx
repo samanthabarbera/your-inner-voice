@@ -1,38 +1,33 @@
 import { LENGTHS } from '../../../data/builderOptions'
+import CheckBadge from '../CheckBadge'
 
-const POP_COLORS = ['#FF4E6A', '#00C2C8', '#FF4E6A']
-
-export default function StepLength({ selected, onSelect }) {
+export default function StepLength({ selected, onSelect, accent = '#FFFFFF' }) {
   return (
     <div className="flex flex-1 flex-col">
-      <h2 className="font-display text-3xl font-normal tracking-tight text-ink sm:text-4xl">
+      <h2 className="font-display text-3xl font-medium uppercase leading-none tracking-tight text-ink sm:text-4xl">
         Choose your length
       </h2>
-      <p className="mt-2 text-ink-muted">Pick the time that fits your moment.</p>
+      <p className="mt-3 font-light text-ink-muted">Pick the time that fits your moment.</p>
 
-      <ul className="mt-8 flex flex-col gap-3">
-        {LENGTHS.map((length, i) => {
+      <ul className="mt-7 flex flex-col gap-2.5">
+        {LENGTHS.map((length) => {
           const isSelected = selected === length.id
-          const popColor = POP_COLORS[i % POP_COLORS.length]
           return (
             <li key={length.id}>
               <button
                 type="button"
                 onClick={() => onSelect(length.id)}
-                style={isSelected
-                  ? { background: popColor, borderColor: popColor }
-                  : { borderLeftColor: popColor, borderLeftWidth: '4px' }
-                }
-                className={`card-press${isSelected ? ' card-selected' : ''} flex w-full items-center justify-between rounded-2xl border-2 px-5 py-5 text-left ${
-                  isSelected
-                    ? 'text-white'
-                    : 'border-white/10 bg-white/8 text-ink'
+                aria-pressed={isSelected}
+                style={isSelected ? { background: accent } : undefined}
+                className={`card-press${isSelected ? ' card-selected' : ''} flex w-full items-center justify-between rounded-3xl px-5 py-5 text-left ${
+                  isSelected ? 'text-[#0B0B0C]' : 'bg-canvas-deep text-ink'
                 }`}
               >
-                <span className="text-lg font-medium">{length.label}</span>
-                {isSelected && (
-                  <span className="text-sm text-white/70" aria-hidden="true">✓</span>
-                )}
+                <span className="flex items-baseline gap-2">
+                  <span className="text-3xl font-medium leading-none">{length.minutes}</span>
+                  <span className="text-base font-light">minutes</span>
+                </span>
+                {isSelected && <CheckBadge color={accent} />}
               </button>
             </li>
           )

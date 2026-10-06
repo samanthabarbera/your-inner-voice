@@ -1,4 +1,5 @@
 import PlayButton from './PlayButton'
+import CheckBadge from './CheckBadge'
 
 export default function VoiceOptionCard({
   isSelected,
@@ -9,22 +10,18 @@ export default function VoiceOptionCard({
   title,
   description,
   leading,
-  popColor = '#FF4E6A',
+  accent = '#FFFFFF',
 }) {
   return (
     <div
       onClick={onSelect}
       role="button"
       tabIndex={0}
-      onKeyDown={(e) => e.key === 'Enter' || e.key === ' ' ? onSelect() : null}
-      style={isSelected
-        ? { background: popColor, borderColor: popColor }
-        : { borderLeftColor: popColor, borderLeftWidth: '4px' }
-      }
-      className={`card-press${isSelected ? ' card-selected' : ''} flex w-full cursor-pointer items-center gap-4 rounded-2xl border-2 px-5 py-5 text-left ${
-        isSelected
-          ? ''
-          : 'border-white/10 bg-white/8'
+      aria-pressed={isSelected}
+      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ' ? onSelect() : null)}
+      style={isSelected ? { background: accent } : undefined}
+      className={`card-press${isSelected ? ' card-selected' : ''} flex w-full cursor-pointer items-center gap-4 rounded-3xl px-5 py-4 text-left ${
+        isSelected ? 'text-[#0B0B0C]' : 'bg-canvas-deep text-ink'
       }`}
     >
       {leading ?? (
@@ -32,14 +29,16 @@ export default function VoiceOptionCard({
       )}
 
       <div className="min-w-0 flex-1 text-left">
-        <p className={`text-lg font-medium ${isSelected ? 'text-white' : 'text-ink'}`}>
+        <p className="text-lg font-medium">
           {title}
           {isPlaying && !isPlayLoading && (
-            <span className={`ml-2 text-sm font-normal ${isSelected ? 'text-white/70' : 'text-ink-muted'}`}>Playing</span>
+            <span className={`ml-2 text-sm font-normal ${isSelected ? 'text-[#0B0B0C]/75' : 'text-ink-muted'}`}>Playing</span>
           )}
         </p>
-        <p className={`mt-0.5 text-sm ${isSelected ? 'text-white/70' : 'text-ink-muted'}`}>{description}</p>
+        <p className={`mt-0.5 text-sm font-light ${isSelected ? 'text-[#0B0B0C]/80' : 'text-ink-muted'}`}>{description}</p>
       </div>
+
+      {isSelected && <CheckBadge color={accent} />}
     </div>
   )
 }

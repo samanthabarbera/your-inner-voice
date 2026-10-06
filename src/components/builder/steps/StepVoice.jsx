@@ -8,7 +8,6 @@ import { useVoicePreview } from '../../../hooks/useVoicePreview'
 import VoiceCloneFlow from '../../voice-clone/VoiceCloneFlow'
 import MicrophoneIcon from '../../voice-clone/MicrophoneIcon'
 import VoiceOptionCard from '../VoiceOptionCard'
-const POP_COLORS = ['#FF4E6A', '#00C2C8', '#FF4E6A']
 
 
 export default function StepVoice({
@@ -16,6 +15,7 @@ export default function StepVoice({
   customVoiceId,
   onSelect,
   onCustomVoiceReady,
+  accent = '#FFFFFF',
 }) {
   const [showCloneFlow, setShowCloneFlow] = useState(false)
 
@@ -45,19 +45,19 @@ export default function StepVoice({
   return (
     <>
       <div className="flex flex-1 flex-col">
-        <h2 className="font-display text-3xl font-medium tracking-tight text-ink sm:text-4xl">
+        <h2 className="font-display text-3xl font-medium uppercase leading-none tracking-tight text-ink sm:text-4xl">
           Choose a voice
         </h2>
-        <p className="mt-2 text-ink-muted">Select the voice that feels right for you.</p>
+        <p className="mt-3 font-light text-ink-muted">Select the voice that feels right for you.</p>
 
         {previewError && (
-          <p className="mt-4 rounded-xl border border-red-200/80 bg-red-50/80 px-4 py-3 text-sm text-red-800">
+          <p className="mt-4 rounded-2xl bg-[#FF9B4A] px-4 py-3 text-sm font-medium text-[#0B0B0C]">
             {previewError}
           </p>
         )}
 
-        <ul className="mt-8 flex flex-col gap-3">
-          {VOICES.map((voice, i) => {
+        <ul className="mt-7 flex flex-col gap-2.5">
+          {VOICES.map((voice) => {
             const isSelected = selected === voice.id
             const isLoading = loadingVoiceId === voice.id
             const isPlaying = playingVoiceId === voice.id
@@ -72,7 +72,7 @@ export default function StepVoice({
                   isPlaying={isPlaying}
                   title={voice.name}
                   description={voice.description}
-                  popColor={POP_COLORS[i % POP_COLORS.length]}
+                  accent={accent}
                 />
               </li>
             )
@@ -86,12 +86,13 @@ export default function StepVoice({
               isPlaying={false}
               title={OWN_VOICE_OPTION.name}
               description={OWN_VOICE_OPTION.description}
+              accent={accent}
               leading={
                 <div
-                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border ${
+                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${
                     isCustomSelected
-                      ? 'border-white/30 bg-white/10 text-ink'
-                      : 'border-white/15 bg-white/8 text-ink'
+                      ? 'bg-[#0B0B0C] text-white'
+                      : 'bg-white text-[#0B0B0C]'
                   }`}
                   aria-hidden="true"
                 >

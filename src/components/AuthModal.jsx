@@ -52,7 +52,7 @@ export default function AuthModal({ onClose, onSuccess }) {
 
         <div className="flex flex-col gap-8">
           <div>
-            <h2 className="font-display text-3xl font-normal tracking-tight text-ink">
+            <h2 className="font-display text-3xl font-medium uppercase leading-none tracking-tight text-ink">
               Save your meditation
             </h2>
             <p className="mt-2 text-base text-ink-muted">
@@ -63,7 +63,7 @@ export default function AuthModal({ onClose, onSuccess }) {
           </div>
 
           {successMessage ? (
-            <div className="rounded-2xl border-2 border-ink/10 bg-canvas-deep px-5 py-5 text-center">
+            <div className="rounded-3xl bg-canvas-deep px-5 py-5 text-center">
               <p className="text-base text-ink">{successMessage}</p>
               <button
                 type="button"
@@ -78,7 +78,7 @@ export default function AuthModal({ onClose, onSuccess }) {
               <button
                 type="button"
                 onClick={handleGoogle}
-                className="flex w-full items-center justify-center gap-3 rounded-full border-2 border-ink/15 bg-canvas-deep px-6 py-3 text-sm font-medium text-ink shadow-sm transition-colors hover:border-ink/30"
+                className="flex w-full items-center justify-center gap-3 rounded-full bg-canvas-raised px-6 py-3.5 text-sm font-medium text-ink transition-colors hover:bg-[#2A2A2E]"
               >
                 <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
                   <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" />
@@ -103,7 +103,7 @@ export default function AuthModal({ onClose, onSuccess }) {
                   required
                   autoComplete="email"
                   placeholder="Email"
-                  className="rounded-xl border-2 border-ink/10 bg-canvas-deep px-4 py-3 text-sm text-ink placeholder-ink/30 outline-none focus:border-ink/35"
+                  className="rounded-2xl border-2 border-white/12 bg-canvas-deep px-4 py-3.5 text-sm text-ink placeholder-ink/30 outline-none focus:border-white"
                 />
                 <input
                   type="password"
@@ -112,11 +112,11 @@ export default function AuthModal({ onClose, onSuccess }) {
                   required
                   autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
                   placeholder="Password"
-                  className="rounded-xl border-2 border-ink/10 bg-canvas-deep px-4 py-3 text-sm text-ink placeholder-ink/30 outline-none focus:border-ink/35"
+                  className="rounded-2xl border-2 border-white/12 bg-canvas-deep px-4 py-3.5 text-sm text-ink placeholder-ink/30 outline-none focus:border-white"
                 />
 
                 {error && (
-                  <p className="rounded-xl border border-red-200 bg-red-50/80 px-4 py-3 text-sm text-red-800">
+                  <p className="rounded-2xl bg-[#FF9B4A] px-4 py-3 text-sm font-medium text-[#0B0B0C]">
                     {error}
                   </p>
                 )}
@@ -124,7 +124,7 @@ export default function AuthModal({ onClose, onSuccess }) {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="rounded-full bg-[#FF4E6A] px-8 py-3.5 text-base font-medium text-white shadow-sm transition-colors hover:bg-[#e63f5a] active:scale-[0.97] active:brightness-90 disabled:opacity-60"
+                  className="rounded-full bg-white px-8 py-4 text-base font-medium text-[#0B0B0C] transition-colors hover:bg-[#E9E9EC] active:scale-[0.97] disabled:opacity-60"
                 >
                   {loading ? '...' : mode === 'signin' ? 'Sign in' : 'Create account'}
                 </button>

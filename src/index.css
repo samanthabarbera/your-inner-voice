@@ -1,22 +1,25 @@
 @import 'tailwindcss';
-@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap');
 
 @theme {
-  --font-display: 'DM Serif Display', Georgia, 'Times New Roman', serif;
-  --font-sans: 'DM Sans', system-ui, sans-serif;
+  --font-display: 'Outfit', system-ui, sans-serif;
+  --font-sans: 'Outfit', system-ui, sans-serif;
 
-  /* P palette — Deep Ocean Teal + Neon Coral */
-  --color-canvas: #003D40;
-  --color-canvas-deep: #004D52;
-  --color-ink: #E8F8F8;
-  --color-ink-muted: rgba(232,248,248,0.6);
-  --color-accent: #FF4E6A;
-  --color-accent-hover: #e63f5a;
+  /* Look F · Pop — black ground, white type, color-blocked themes */
+  --color-canvas: #0B0B0C;
+  --color-canvas-deep: #161618;
+  --color-canvas-raised: #1C1C1F;
+  --color-ink: #FFFFFF;
+  --color-ink-muted: rgba(255,255,255,0.72);
+  --color-accent: #FFFFFF;
+  --color-accent-hover: #E9E9EC;
 
-  /* Pop accent dots */
-  --color-pop-red: #FF4E6A;
-  --color-pop-yellow: #00C2C8;
-  --color-pop-teal: #E8F8F8;
+  /* Theme colors (each theme keeps its own color everywhere) */
+  --color-pop-pink: #F26BB5;
+  --color-pop-yellow: #EDF23A;
+  --color-pop-green: #3BE07A;
+  --color-pop-blue: #4D8DFF;
+  --color-pop-lavender: #B49CFF;
+  --color-pop-orange: #FF9B4A;
 }
 
 @layer base {
@@ -26,7 +29,7 @@
 
   body {
     @apply m-0 min-h-svh font-sans text-ink;
-    background: linear-gradient(145deg, #003D40 0%, #005F65 100%);
+    background: #0B0B0C;
     min-height: 100svh;
   }
 
@@ -52,113 +55,45 @@
   .animate-pulse-soft {
     animation: pulse-soft 2.4s ease-in-out infinite;
   }
+
+  @keyframes starburst-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+
+  .animate-starburst {
+    animation: starburst-spin 60s linear infinite;
+    transform-origin: center;
+  }
 }
 
-/* ── Physical button press effect ─────────────────────────── */
+/* ── Primary pill button: white face, black type ───────────── */
 .btn-press {
-  /* Gradient face: lighter top edge, darker bottom — mimics light hitting a raised surface */
-  background-image: linear-gradient(to bottom, #ff6b84 0%, #FF4E6A 40%, #e8394f 100%);
-  /* Deep stacked shadow: hard bottom edge (the "depth") + soft ambient glow */
-  box-shadow:
-    0 1px 0 rgba(255,255,255,0.25) inset,   /* top inner highlight */
-    0 -1px 0 rgba(0,0,0,0.2) inset,          /* bottom inner shadow */
-    0 7px 0 #a8273d,                          /* hard bottom face (the depth) */
-    0 9px 18px rgba(168,39,61,0.55);         /* ambient glow */
-  transform: translateY(0);
-  transition: transform 0.07s ease, box-shadow 0.07s ease, background-image 0.07s ease;
+  background: #FFFFFF !important;
+  color: #0B0B0C !important;
+  transform: translateY(0) scale(1);
+  transition: transform 0.12s ease, background-color 0.12s ease, opacity 0.2s ease;
 }
 
-.btn-press:hover {
-  background-image: linear-gradient(to bottom, #ff7d94 0%, #ff5f77 40%, #f0404f 100%);
-  box-shadow:
-    0 1px 0 rgba(255,255,255,0.3) inset,
-    0 -1px 0 rgba(0,0,0,0.2) inset,
-    0 8px 0 #a8273d,
-    0 11px 22px rgba(168,39,61,0.5);
-  transform: translateY(-1px);
+.btn-press:hover:not(:disabled) {
+  background: #E9E9EC !important;
 }
 
-.btn-press:active {
-  /* Squash down: button face moves down, depth shadow collapses, inset shadow appears */
-  background-image: linear-gradient(to bottom, #e8394f 0%, #FF4E6A 60%, #ff6b84 100%);
-  box-shadow:
-    0 1px 0 rgba(0,0,0,0.15) inset,          /* top inner now darkens (pressed) */
-    0 -1px 0 rgba(255,255,255,0.1) inset,
-    0 2px 0 #a8273d,                          /* depth almost gone */
-    0 3px 8px rgba(168,39,61,0.4);
-  transform: translateY(5px);
-}
-
-@media (hover: none) {
-  .btn-press:hover {
-    background-image: linear-gradient(to bottom, #ff6b84 0%, #FF4E6A 40%, #e8394f 100%);
-    box-shadow:
-      0 1px 0 rgba(255,255,255,0.25) inset,
-      0 -1px 0 rgba(0,0,0,0.2) inset,
-      0 7px 0 #a8273d,
-      0 9px 18px rgba(168,39,61,0.55);
-    transform: translateY(0);
-  }
-  .btn-press:active {
-    background-image: linear-gradient(to bottom, #e8394f 0%, #FF4E6A 60%, #ff6b84 100%);
-    box-shadow:
-      0 1px 0 rgba(0,0,0,0.15) inset,
-      0 -1px 0 rgba(255,255,255,0.1) inset,
-      0 2px 0 #a8273d,
-      0 3px 8px rgba(168,39,61,0.4);
-    transform: translateY(5px);
-  }
+.btn-press:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 /* ── Selection card press effect ──────────────────────────── */
 .card-press {
-  box-shadow:
-    0 1px 0 rgba(255,255,255,0.07) inset,
-    0 5px 0 rgba(0,0,0,0.35),
-    0 7px 14px rgba(0,0,0,0.25);
-  transform: translateY(0);
-  transition: transform 0.07s ease, box-shadow 0.07s ease;
-}
-
-.card-press:hover {
-  box-shadow:
-    0 1px 0 rgba(255,255,255,0.07) inset,
-    0 6px 0 rgba(0,0,0,0.35),
-    0 9px 18px rgba(0,0,0,0.25);
-  transform: translateY(-1px);
+  transform: translateY(0) scale(1);
+  transition: transform 0.12s ease, box-shadow 0.15s ease, background-color 0.15s ease;
 }
 
 .card-press:active {
-  box-shadow:
-    0 1px 0 rgba(0,0,0,0.15) inset,
-    0 2px 0 rgba(0,0,0,0.35),
-    0 3px 6px rgba(0,0,0,0.2);
-  transform: translateY(3px);
+  transform: scale(0.97);
 }
 
-/* Selected state — stays pressed in */
+/* Selected state — ring around the block */
 .card-press.card-selected {
-  box-shadow:
-    0 2px 0 rgba(0,0,0,0.3) inset,
-    0 1px 0 rgba(0,0,0,0.25),
-    0 2px 8px rgba(0,0,0,0.2);
-  transform: translateY(2px);
-}
-
-.card-press.card-selected:hover {
-  box-shadow:
-    0 2px 0 rgba(0,0,0,0.3) inset,
-    0 1px 0 rgba(0,0,0,0.25),
-    0 2px 8px rgba(0,0,0,0.2);
-  transform: translateY(2px);
-}
-
-@media (hover: none) {
-  .card-press:hover {
-    box-shadow:
-      0 1px 0 rgba(255,255,255,0.07) inset,
-      0 5px 0 rgba(0,0,0,0.35),
-      0 7px 14px rgba(0,0,0,0.25);
-    transform: translateY(0);
-  }
+  box-shadow: 0 0 0 3px #0B0B0C, 0 0 0 5px #FFFFFF;
 }

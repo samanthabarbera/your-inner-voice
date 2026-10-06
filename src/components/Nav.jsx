@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import Starburst from './Starburst'
 
 export default function Nav() {
   const { user } = useAuth()
@@ -13,15 +14,16 @@ export default function Nav() {
 
   return (
     <nav className="flex items-center justify-between px-6 py-4">
-      <Link to="/" className="font-display text-xl font-normal tracking-tight text-ink">
+      <Link to="/" className="flex items-center gap-2 text-sm font-medium uppercase tracking-wide text-ink">
+        <Starburst size={18} showLines={false} />
         Your Inner Voice
       </Link>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2">
         {user && (
           <Link
             to="/my-meditations"
-            className="text-sm font-medium text-ink-muted transition-colors hover:text-ink"
+            className="rounded-full px-3 py-2 text-sm font-medium text-ink-muted transition-colors hover:text-ink"
           >
             My Meditations
           </Link>
@@ -31,14 +33,14 @@ export default function Nav() {
           <button
             type="button"
             onClick={handleSignOut}
-            className="text-sm font-medium text-ink-muted transition-colors hover:text-ink"
+            className="rounded-full bg-canvas-raised px-4 py-2 text-sm font-medium text-ink transition-colors hover:bg-[#2A2A2E]"
           >
             Sign out
           </button>
         ) : (
           <Link
             to="/auth"
-            className="rounded-full bg-[#FF4E6A] px-4 py-1.5 text-sm font-medium text-[#E8F8F8] transition-colors hover:bg-[#e63f5a] active:scale-[0.97] active:brightness-90"
+            className="rounded-full bg-white px-4 py-2 text-sm font-medium text-[#0B0B0C] transition-colors hover:bg-[#E9E9EC] active:scale-[0.97]"
           >
             Sign in
           </Link>

@@ -7,6 +7,7 @@ import ContinueButton from '../builder/ContinueButton'
 import MeditationLoadingScreen from './MeditationLoadingScreen'
 import MeditationPlayer from './MeditationPlayer'
 import SavePromptScreen from './SavePromptScreen'
+import { VOICES } from '../../data/builderOptions'
 
 export default function MeditationGenerationFlow({ answers, onStartOver }) {
   const {
@@ -66,10 +67,16 @@ export default function MeditationGenerationFlow({ answers, onStartOver }) {
     performSave(user)
   }
 
+  const voiceName = answers.customVoiceId && !VOICES.some((v) => v.id === answers.voice)
+    ? 'Your voice'
+    : VOICES.find((v) => v.id === answers.voice)?.name
+  const playerMeta = [answers.length && `${answers.length} min`, voiceName].filter(Boolean).join(' · ')
+
   if (phase === 'writing') {
     return (
       <MeditationLoadingScreen
         title={title}
+        theme={answers.theme}
         message="Writing your personalized script..."
       />
     )
@@ -79,6 +86,7 @@ export default function MeditationGenerationFlow({ answers, onStartOver }) {
     return (
       <MeditationLoadingScreen
         title={title}
+        theme={answers.theme}
         message="Recording your meditation in your chosen voice..."
       />
     )
@@ -88,7 +96,7 @@ export default function MeditationGenerationFlow({ answers, onStartOver }) {
     return (
       <main className="flex min-h-svh flex-col items-center justify-center px-6 py-16 text-center">
         <div className="flex w-full max-w-md flex-col items-center gap-8">
-          <div className="rounded-2xl border-2 border-ink/10 bg-canvas-deep px-5 py-6">
+          <div className="rounded-3xl bg-canvas-deep px-5 py-6">
             <p className="text-lg leading-relaxed text-ink">
               We had trouble creating your meditation — want to try again?
             </p>
@@ -100,7 +108,7 @@ export default function MeditationGenerationFlow({ answers, onStartOver }) {
               </p>
             )}
             {errorMessage && (
-              <p className="mt-3 text-sm text-red-800">{errorMessage}</p>
+              <p className="mt-3 text-sm font-medium text-[#FF9B4A]">{errorMessage}</p>
             )}
           </div>
           <ContinueButton label="Try again" onClick={retry} />
@@ -143,6 +151,8 @@ export default function MeditationGenerationFlow({ answers, onStartOver }) {
       <MeditationPlayer
         audioUrl={audioUrl}
         title={title}
+        theme={answers.theme}
+        meta={playerMeta}
         onEnded={() => setShowSavePrompt(true)}
       />
     )
@@ -151,6 +161,7 @@ export default function MeditationGenerationFlow({ answers, onStartOver }) {
   return (
     <MeditationLoadingScreen
       title={title}
+      theme={answers.theme}
       message="Preparing your meditation..."
     />
   )

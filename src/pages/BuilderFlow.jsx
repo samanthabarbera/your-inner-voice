@@ -12,6 +12,7 @@ import StepContext from '../components/builder/steps/StepContext'
 import StepLength from '../components/builder/steps/StepLength'
 import StepTheme from '../components/builder/steps/StepTheme'
 import StepVoice from '../components/builder/steps/StepVoice'
+import { themeColor } from '../data/themeColors'
 
 const initialAnswers = {
   theme: null,
@@ -115,6 +116,8 @@ export default function BuilderFlow() {
     : step
   const totalDisplaySteps = isUniverseTheme ? 3 : 4
 
+  const accent = answers.theme ? themeColor(answers.theme) : '#FFFFFF'
+
   const stepContent = () => {
     switch (step) {
       case 1:
@@ -129,6 +132,7 @@ export default function BuilderFlow() {
           <StepContext
             value={answers.context}
             onChange={(value) => updateAnswer('context', value)}
+            accent={accent}
           />
         )
       case 3:
@@ -136,6 +140,7 @@ export default function BuilderFlow() {
           <StepLength
             selected={answers.length}
             onSelect={(value) => updateAnswer('length', value)}
+            accent={accent}
           />
         )
       case 4:
@@ -145,6 +150,7 @@ export default function BuilderFlow() {
             customVoiceId={answers.customVoiceId}
             onSelect={handleVoiceSelect}
             onCustomVoiceReady={handleCustomVoiceReady}
+            accent={accent}
           />
         )
       default:
@@ -156,6 +162,7 @@ export default function BuilderFlow() {
     <BuilderLayout
       currentStep={displayStep}
       totalSteps={totalDisplaySteps}
+      accent={accent}
       footer={
         <div className="flex flex-col gap-3">
           <ContinueButton onClick={handleContinue} disabled={!canContinue()} />
