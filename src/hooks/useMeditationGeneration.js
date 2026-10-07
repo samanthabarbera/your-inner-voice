@@ -162,7 +162,7 @@ export function useMeditationGeneration(answers) {
       const voiceId = getElevenLabsVoiceId(answers)
       if (!voiceId) throw new Error('No voice selected.')
 
-      const response = await streamFullAudio(voiceId, cleanedScript, controller.signal)
+      const response = await streamFullAudio(voiceId, cleanedScript, controller.signal, answers.length)
 
       if (runId !== runIdRef.current) return
 

@@ -13,6 +13,8 @@ import { buildMeditationPrompt } from './src/data/meditationPrompt.js'
 import { ELEVENLABS_VOICE_SETTINGS } from './src/config/elevenlabsVoiceSettings.js'
 import { VOICES } from './src/data/builderOptions.js'
 import { cleanMeditationScript, scriptToLines, scriptToChunks } from './src/utils/meditationScript.js'
+import { createPacer, mp3Seconds } from './src/utils/pacing.js'
+import { getTargetWordCount, buildRevisionPrompt, checkScript } from './src/data/meditationPrompt.js'
 
 Ffmpeg.setFfmpegPath(ffmpegPath)
 
@@ -49,6 +51,13 @@ const SILENT_FRAME = Buffer.concat([
   Buffer.alloc(396, 0),
 ])
 const SILENCE_MP3 = Buffer.concat(Array.from({ length: 77 }, () => SILENT_FRAME))
+const SILENT_FRAME_SECONDS = 1152 / 44100
+
+/** A run of silent MP3 frames lasting approximately `seconds`. */
+function silenceMp3(seconds) {
+  const frames = Math.max(0, Math.round(seconds / SILENT_FRAME_SECONDS))
+  return Buffer.concat(Array.from({ length: frames }, () => SILENT_FRAME))
+}
 
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',')
@@ -321,7 +330,51 @@ app.post('/api/generate-meditation', async (req, res) => {
       return res.status(500).json({ error: 'Claude returned an empty meditation script.' })
     }
 
-    return res.json({ script: cleanMeditationScript(text.trim()) })
+    let script = cleanMeditationScript(text.trim())
+
+    // Claude doesn't hit word counts reliably (a "5 minute" draft once came back at
+    // nearly twice the words). If the draft is far off, or the eyes don't open on the
+    // final line, ask for one corrected version before any audio is made.
+    const target = getTargetWordCount(lengthMinutes)
+    const check = checkScript(script, target)
+    console.log(`[generate] ${lengthMinutes} min: ${check.words} words (target ${target}), eyes-open last: ${check.eyesOpenLast}`)
+    if (!check.ok) {
+      try {
+        const revised = await fetch(ANTHROPIC_API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': getAnthropicKey(),
+            'anthropic-version': '2023-06-01',
+          },
+          body: JSON.stringify({
+            model: MEDITATION_MODEL,
+            max_tokens: maxTokens,
+            messages: [
+              { role: 'user', content: prompt },
+              { role: 'assistant', content: script },
+              { role: 'user', content: buildRevisionPrompt(check, target, lengthMinutes) },
+            ],
+          }),
+        })
+        if (revised.ok) {
+          const revisedData = await revised.json()
+          const revisedText = revisedData.content?.find((b) => b.type === 'text')?.text
+          if (revisedText?.trim()) {
+            const revisedScript = cleanMeditationScript(revisedText.trim())
+            const recheck = checkScript(revisedScript, target)
+            console.log(`[generate] revised: ${recheck.words} words, eyes-open last: ${recheck.eyesOpenLast}`)
+            if (Math.abs(recheck.words - target) <= Math.abs(check.words - target) || (!check.eyesOpenLast && recheck.eyesOpenLast)) {
+              script = revisedScript
+            }
+          }
+        }
+      } catch (err) {
+        console.error('[generate] revision failed, using first draft:', err.message)
+      }
+    }
+
+    return res.json({ script })
   } catch (error) {
     return res.status(500).json({
       error: error instanceof Error ? error.message : 'Failed to generate meditation.',
@@ -357,14 +410,18 @@ app.post('/api/preview-voice', async (req, res) => {
 
 app.post('/api/stream-audio', async (req, res) => {
   try {
-    const { script, voice_id: voiceId } = req.body
+    const { script, voice_id: voiceId, length } = req.body
 
     if (!script?.trim() || !voiceId) {
       return res.status(400).json({ error: 'script and voice_id are required.' })
     }
 
-    const lines = scriptToChunks(script)
-    console.log(`[stream-audio] ${lines.length} lines to synthesise`)
+    // One recording per line so every pause is ours to control (see utils/pacing.js).
+    const lines = scriptToLines(script)
+    const minutes = parseInt(length, 10)
+    const targetSeconds = Number.isFinite(minutes) && minutes > 0 ? minutes * 60 : null
+    const pacer = createPacer(lines, targetSeconds)
+    console.log(`[stream-audio] ${lines.length} lines to synthesise, target ${targetSeconds ?? 'none'}s`)
 
     const presetVoice = VOICES.find((v) => v.voiceId === voiceId)
     const voiceSettingsOverride = presetVoice
@@ -387,12 +444,13 @@ app.post('/api/stream-audio', async (req, res) => {
       while (nextToWrite < lines.length && done[nextToWrite]) {
         const chunk = mp3Chunks[nextToWrite]
         if (chunk && chunk.length > 0) {
-          res.write(stripVbrHeader(chunk))
-          res.write(SILENCE_MP3)
+          res.write(chunk)
+          res.write(silenceMp3(pacer.pauseAfter(nextToWrite)))
         }
         nextToWrite++
       }
       if (nextToWrite === lines.length) {
+        console.log(`[stream-audio] done: ${Math.round(pacer.elapsed)}s (target ${targetSeconds ?? 'none'}s)`)
         res.end()
       }
     }
@@ -402,7 +460,9 @@ app.post('/api/stream-audio', async (req, res) => {
         const i = ptr++
         try {
           console.log(`[stream-audio] line ${i + 1}/${lines.length}: "${lines[i]}"`)
-          mp3Chunks[i] = await callElevenLabsTts(voiceId, lines[i], voiceSettingsOverride)
+          const audio = stripVbrHeader(await callElevenLabsTts(voiceId, lines[i], voiceSettingsOverride))
+          mp3Chunks[i] = audio
+          pacer.setSpeech(i, mp3Seconds(audio.length))
           done[i] = true
           flush()
         } catch (err) {

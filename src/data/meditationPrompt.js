@@ -36,13 +36,13 @@ PART 6: THE DECLARATION (10% of total length) — Open with a slow invitation to
 
 PART 7: THE SIGN (5% of total length) — Guide them to ask the universe for a specific sign — not a random occurrence, but a personal confirmation directed at them because of what they just declared and embodied. The script must name explicitly what the sign is a sign of. Vary this language across generations — for example: "a sign that the universe has heard you," "a sign that what you declared today is already moving toward you," "a sign that you are aligned with what is coming," "a sign that the field is already responding to who you are now." The listener should finish this section feeling that the universe is actively responding to them specifically. It will be something they could not have engineered themselves. The sign may come today, tomorrow, or this week. Tell them they will know it when they see it — because it will feel like confirmation, not coincidence.
 
-PART 8: RETURN (10% of total length) — Slowly guide them back to full waking awareness. Wiggle fingers and toes. Deepen the breath. Remind them that everything they felt in this meditation is real. End with one final grounding statement spoken with quiet authority. Then silence. Vary your closing each time — sometimes a simple gentle return to waking awareness, sometimes an emphatic acknowledgment that they are not the same person who began this meditation, carrying a new signal into the world. The return must always take at least 4–5 full spoken statements to complete — grounding the body, anchoring the present moment, and landing a final closing thought. Never end abruptly after just one or two lines. The 10% word count allocation for this part applies at every meditation length — even a 5-minute meditation must give Part 8 its full share of words so the ending never feels cut short.
+PART 8: RETURN (10% of total length) — Slowly guide them back to full waking awareness in this exact order: (1) deepen the breath, (2) feel the weight of the body again, (3) wiggle fingers and toes, (4) become aware of the sounds and space around them, (5) remind them that everything they felt in this meditation is real and land the closing thought with quiet authority — vary it each time, sometimes a simple gentle return, sometimes an emphatic acknowledgment that they are not the same person who began this meditation, carrying a new signal into the world. (6) Only then, as the very last line of the entire script, invite them to open their eyes — for example "When you're ready, open your eyes." The eyes must stay closed until that final line: do not mention opening the eyes anywhere earlier in the script, and write nothing at all after it. The return must take at least 4–5 full spoken statements before the final eyes-open line — never end abruptly. The 10% word count allocation for this part applies at every meditation length — even a 5-minute meditation must give Part 8 its full share of words so the ending never feels cut short.
 
 SHARED VOCABULARY: Draw naturally from this vocabulary without forcing it into every meditation: signal, frequency, field, electromagnetic, coherence, broadcast, signature, alignment, the unified field, infinite intelligence, elevated emotion, state of being.
 
 FORMATTING RULES:
 Never include part numbers, section titles, or labels like 'Part 1' or 'PART 2' in the spoken script. The eight-part structure above is for your planning only — it must never appear in the output.
-Never use SSML break tags or any XML or HTML tags of any kind. All pacing is handled through natural punctuation only — periods, commas, and ellipses. Use ellipses after open reflective questions and throughout the Reflection Space of the Identity Shift to signal a longer, softer pause.
+Never use SSML break tags or any XML or HTML tags of any kind. All pacing is handled through natural punctuation only — periods, commas, question marks and ellipses. The audio adds silence automatically based on how each line ends: a short pause after a period, a longer one after an ellipsis, and the longest after a question mark. So every question must end with a question mark (never turn a question into an ellipsis), and never write filler lines just to create space. Use ellipses after open reflective questions and throughout the Reflection Space of the Identity Shift to signal a longer, softer pause.
 The script must be written in the style of the example below. Study this example carefully — this is the exact density, pacing, and line structure required for every part of the meditation:
 'Close your eyes.
 Take a breath in.
@@ -92,11 +92,11 @@ PART 6: THE DECLARATION (10% of total length) — Open with a slow invitation to
 
 PART 7: THE SIGN (5% of total length) — Guide them to ask the universe for a specific sign — not a random occurrence, but a personal confirmation directed at them because of what they just received and embodied. The script must name explicitly what the sign is a sign of. Vary this language — for example: "a sign that the universe has heard you," "a sign that what opened in you today is already moving," "a sign that you are aligned with what is coming." The listener should finish feeling that the universe is actively responding to them specifically. It will be something they could not have engineered themselves. The sign may come today, tomorrow, or this week. Tell them they will know it when they see it — because it will feel like confirmation, not coincidence. Remind them that the universe chose this meditation for them today for a reason.
 
-PART 8: RETURN (10% of total length) — Slowly guide them back to full waking awareness. Wiggle fingers and toes. Deepen the breath. Remind them that everything they felt in this meditation is real. End with one final grounding statement spoken with quiet authority. Then silence.
+PART 8: RETURN (10% of total length) — Slowly guide them back to full waking awareness in this exact order: (1) deepen the breath, (2) feel the weight of the body again, (3) wiggle fingers and toes, (4) become aware of the sounds and space around them, (5) remind them that everything they felt in this meditation is real and land the closing thought with quiet authority — vary it each time, sometimes a simple gentle return, sometimes an emphatic acknowledgment that they are not the same person who began this meditation, carrying a new signal into the world. (6) Only then, as the very last line of the entire script, invite them to open their eyes — for example "When you're ready, open your eyes." The eyes must stay closed until that final line: do not mention opening the eyes anywhere earlier in the script, and write nothing at all after it. The return must take at least 4–5 full spoken statements before the final eyes-open line — never end abruptly. The 10% word count allocation for this part applies at every meditation length — even a 5-minute meditation must give Part 8 its full share of words so the ending never feels cut short.
 
 FORMATTING RULES:
 Never include part numbers, section titles, or labels like 'Part 1' or 'PART 2' in the spoken script. The eight-part structure above is for your planning only — it must never appear in the output.
-Never use SSML break tags or any XML or HTML tags of any kind. All pacing is handled through natural punctuation only — periods, commas, and ellipses.
+Never use SSML break tags or any XML or HTML tags of any kind. All pacing is handled through natural punctuation only — periods, commas, question marks and ellipses. The audio adds silence automatically based on how each line ends: a short pause after a period, a longer one after an ellipsis, and the longest after a question mark. So every question must end with a question mark (never turn a question into an ellipsis), and never write filler lines just to create space.
 The script must be written in the style of the example below. Study this example carefully — this is the exact density, pacing, and line structure required for every part of the meditation:
 'Close your eyes.
 Take a breath in.
@@ -121,11 +121,44 @@ Rules derived from this example:
 — Distribute [WORD_COUNT] words across all 8 parts according to their percentages. Every part must be present and complete.
 — The silence is the meditation. The words are just the doorway.`
 
-const WORD_COUNTS = { 5: 260, 10: 570, 15: 935 }
+// Calibrated for one recording per line (~0.55s per spoken word) plus the
+// automatic pauses, so the finished audio lands on the chosen length. The audio
+// step then fine-tunes the pauses to hit the exact time.
+const WORD_COUNTS = { 5: 290, 10: 590, 15: 880 }
+
+export function getTargetWordCount(minutes) {
+  return WORD_COUNTS[minutes] ?? Math.round(minutes * 59)
+}
+
+const EYES_OPEN_PATTERN = /\b(open|opening)\b[^.?!]*\beyes?\b|\beyes?\b[^.?!]*\bopen/i
+
+/** Checks a finished script against the length target and the eyes-open-last rule. */
+export function checkScript(script, target) {
+  const lines = script.split('\n').map((l) => l.trim()).filter(Boolean)
+  const words = script.split(/\s+/).filter(Boolean).length
+  const eyesLines = lines.map((l, i) => (EYES_OPEN_PATTERN.test(l) ? i : -1)).filter((i) => i >= 0)
+  // The eyes-open instruction may span the last two lines ("Open your eyes. / When you're ready.").
+  const eyesOpenLast = eyesLines.length > 0 && eyesLines.every((i) => i >= lines.length - 2)
+  const withinLength = words >= target * 0.85 && words <= target * 1.15
+  return { ok: withinLength && eyesOpenLast, words, withinLength, eyesOpenLast }
+}
+
+export function buildRevisionPrompt(check, target, minutes) {
+  const fixes = []
+  if (!check.withinLength) {
+    fixes.push(
+      `It is ${check.words} words, but a ${minutes}-minute meditation needs approximately ${target} spoken words (between ${Math.round(target * 0.9)} and ${Math.round(target * 1.1)}). ${check.words > target ? 'Condense it — shorten or remove lines evenly across all eight parts.' : 'Expand it — add lines evenly across all eight parts.'}`,
+    )
+  }
+  if (!check.eyesOpenLast) {
+    fixes.push('Opening the eyes must happen only once, as the very last line of the script, after the full return sequence (breath, body, fingers and toes, surroundings, closing thought). Nothing may come after it.')
+  }
+  return `Revise this meditation script. ${fixes.join(' ')} Keep everything else the same: the same voice, the same eight-part structure, every formatting rule (maximum 6 words per line, every question ending with a question mark). Output only the revised script — no notes, labels or commentary.`
+}
 
 export function buildMeditationPrompt(answers) {
   const length = getLengthMinutes(answers.length)
-  const wordCount = WORD_COUNTS[length] ?? 560
+  const wordCount = getTargetWordCount(length)
 
   if (answers.theme === UNIVERSE_THEME_ID) {
     return UNIVERSE_PROMPT_TEMPLATE

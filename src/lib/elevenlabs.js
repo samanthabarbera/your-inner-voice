@@ -13,8 +13,8 @@ export async function generateFullAudio(voiceId, script, signal) {
   return generateMeditationAudio(script, voiceId, signal)
 }
 
-export async function streamFullAudio(voiceId, script, signal) {
-  return streamMeditationAudio(script, voiceId, signal)
+export async function streamFullAudio(voiceId, script, signal, length) {
+  return streamMeditationAudio(script, voiceId, signal, length)
 }
 
 export const fetchVoicePreview = textToSpeech

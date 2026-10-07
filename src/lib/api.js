@@ -97,11 +97,11 @@ export async function previewVoice(voiceId, text, signal) {
  * Returns a fetch Response whose body streams MP3 chunks as they are synthesised.
  * @returns {Promise<Response>}
  */
-export async function streamMeditationAudio(script, voiceId, signal) {
+export async function streamMeditationAudio(script, voiceId, signal, length) {
   const response = await fetch(`${API_BASE}/stream-audio`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ script, voice_id: voiceId }),
+    body: JSON.stringify({ script, voice_id: voiceId, length }),
     signal,
   })
 
