@@ -33,6 +33,8 @@ const ELEVENLABS_TTS_MODEL = 'eleven_multilingual_v2'
 const ELEVENLABS_TTS_TIMEOUT_MS = 120_000
 
 const TTS_CONCURRENCY = 4
+/** Seconds of music-only intro before the guide starts speaking. */
+const MUSIC_INTRO_SECONDS = 3
 
 // ---------------------------------------------------------------------------
 // Silent MP3 frames
@@ -298,7 +300,7 @@ async function generateStitchedAudio(voiceId, script) {
 
   await Promise.all(Array.from({ length: TTS_CONCURRENCY }, worker))
 
-  const parts = []
+  const parts = [silenceMp3(MUSIC_INTRO_SECONDS)]
   for (const chunk of mp3Chunks) {
     if (chunk && chunk.length > 0) {
       parts.push(chunk)
@@ -452,7 +454,8 @@ app.post('/api/stream-audio', async (req, res) => {
     const lines = scriptToLines(script)
     const minutes = parseInt(length, 10)
     const targetSeconds = Number.isFinite(minutes) && minutes > 0 ? minutes * 60 : null
-    const pacer = createPacer(lines, targetSeconds)
+    // The music-only intro counts toward the chosen length.
+    const pacer = createPacer(lines, targetSeconds ? targetSeconds - MUSIC_INTRO_SECONDS : null)
     console.log(`[stream-audio] ${lines.length} lines to synthesise, target ${targetSeconds ?? 'none'}s`)
 
     const presetVoice = VOICES.find((v) => v.voiceId === voiceId)
@@ -476,6 +479,9 @@ app.post('/api/stream-audio', async (req, res) => {
       while (nextToWrite < lines.length && done[nextToWrite]) {
         const chunk = mp3Chunks[nextToWrite]
         if (chunk && chunk.length > 0) {
+          // Let the music play on its own for a moment before the voice comes in.
+          // Written with the first line (not up front) so a failed stream stays empty.
+          if (nextToWrite === 0) res.write(silenceMp3(MUSIC_INTRO_SECONDS))
           res.write(chunk)
           res.write(silenceMp3(pacer.pauseAfter(nextToWrite)))
         }
