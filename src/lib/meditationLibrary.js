@@ -22,19 +22,25 @@ export function saveMeditationToLibrary(meditation) {
 export async function saveMeditationToCloud(user, meditation, audioBlob) {
   const id = crypto.randomUUID()
 
-  let audioUrl = null
-  if (audioBlob) {
-    const { error: uploadError } = await supabase.storage
-      .from('meditation-audio')
-      .upload(`${user.id}/${id}.mp3`, audioBlob, { contentType: 'audio/mpeg' })
-
-    if (!uploadError) {
-      const { data: urlData } = supabase.storage
-        .from('meditation-audio')
-        .getPublicUrl(`${user.id}/${id}.mp3`)
-      audioUrl = urlData.publicUrl
-    }
+  // Never save a meditation without its audio — an entry you can't play is worse
+  // than a clear "couldn't save, try again".
+  if (!audioBlob || audioBlob.size === 0) {
+    throw new Error('The audio isn\'t ready yet. Please try saving again in a moment.')
   }
+
+  const { error: uploadError } = await supabase.storage
+    .from('meditation-audio')
+    .upload(`${user.id}/${id}.mp3`, audioBlob, { contentType: 'audio/mpeg' })
+
+  if (uploadError) {
+    console.error('[save] audio upload failed:', uploadError)
+    throw new Error('We couldn\'t upload the audio. Please try saving again.')
+  }
+
+  const { data: urlData } = supabase.storage
+    .from('meditation-audio')
+    .getPublicUrl(`${user.id}/${id}.mp3`)
+  const audioUrl = urlData.publicUrl
 
   const { data, error } = await supabase
     .from('meditations')
@@ -51,7 +57,11 @@ export async function saveMeditationToCloud(user, meditation, audioBlob) {
     .select()
     .single()
 
-  if (error) throw error
+  if (error) {
+    // Don't leave an orphaned audio file behind if the row couldn't be written.
+    await supabase.storage.from('meditation-audio').remove([`${user.id}/${id}.mp3`])
+    throw error
+  }
   return data
 }
 

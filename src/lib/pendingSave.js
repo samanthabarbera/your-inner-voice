@@ -37,7 +37,14 @@ export async function stashPendingMeditation(meditation, audioBlob) {
   }
 }
 
+// Only one caller may claim the pending meditation. Sign-in state can update
+// twice in quick succession on return from Google; without this lock both
+// updates read the entry before either deleted it, saving it twice.
+let claiming = false
+
 export async function takePendingMeditation() {
+  if (claiming) return null
+  claiming = true
   try {
     const entry = await withStore('readonly', (s) => s.get(KEY))
     if (!entry) return null
@@ -46,6 +53,8 @@ export async function takePendingMeditation() {
     return entry
   } catch {
     return null
+  } finally {
+    claiming = false
   }
 }
 
