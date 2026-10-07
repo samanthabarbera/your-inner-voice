@@ -6,6 +6,7 @@ import BuilderFlow from './pages/BuilderFlow'
 import MyMeditationsPage from './pages/MyMeditationsPage'
 import AuthPage from './pages/AuthPage'
 import ScriptTest from './pages/ScriptTest'
+import PrivacyPage from './pages/PrivacyPage'
 
 function NavLayout({ children }) {
   return (
@@ -25,6 +26,7 @@ function App() {
           <Route path="/build" element={<BuilderFlow />} />
           <Route path="/my-meditations" element={<NavLayout><MyMeditationsPage /></NavLayout>} />
           <Route path="/auth" element={<AuthPage />} />
+          <Route path="/privacy" element={<NavLayout><PrivacyPage /></NavLayout>} />
           <Route path="/script-test" element={<ScriptTest />} />
         </Routes>
       </AuthProvider>

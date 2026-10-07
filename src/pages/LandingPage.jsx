@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import Starburst from '../components/Starburst'
 
 if (typeof document !== 'undefined' && !document.getElementById('landing-style')) {
@@ -55,6 +55,13 @@ export default function LandingPage() {
         >
           Build my meditation
         </button>
+        <Link
+          to="/privacy"
+          className="self-center text-xs font-medium text-ink-muted underline-offset-2 hover:text-ink hover:underline"
+          style={{ animation: 'fadeUp 0.7s ease 0.45s both' }}
+        >
+          Privacy
+        </Link>
       </div>
     </main>
   )
