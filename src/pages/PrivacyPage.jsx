@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom'
 
-const CONTACT_EMAIL = 'samantha.barbera@gmail.com'
 const EFFECTIVE_DATE = 'October 6, 2026'
 
 function Section({ title, children }) {
@@ -78,10 +77,8 @@ export default function PrivacyPage() {
 
       <Section title="Your choices">
         <p>
-          You can delete any saved meditation from My Meditations at any time. To delete your account,
-          your saved meditations or your voice model entirely, email us at{' '}
-          <a className="text-ink underline underline-offset-2" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>{' '}
-          and we&apos;ll take care of it.
+          You can delete any saved meditation from My Meditations at any time. If you&apos;d like your
+          account or voice model removed entirely, contact us and we&apos;ll take care of it.
         </p>
       </Section>
 
@@ -89,11 +86,8 @@ export default function PrivacyPage() {
         <p>Your Inner Voice is not intended for children under 13, and we do not knowingly collect their information.</p>
       </Section>
 
-      <Section title="Changes and contact">
-        <p>
-          If we change this policy, we&apos;ll update the date at the top of this page. Questions? Email{' '}
-          <a className="text-ink underline underline-offset-2" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
-        </p>
+      <Section title="Changes">
+        <p>If we change this policy, we&apos;ll update the date at the top of this page.</p>
       </Section>
 
       <Link to="/" className="self-start text-sm font-medium text-ink-muted underline-offset-2 hover:text-ink hover:underline">
