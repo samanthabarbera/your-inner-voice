@@ -208,8 +208,33 @@ async function mixMusicUnderVoice(voiceBuffer) {
 const CLONED_VOICE_SETTINGS = { speed: 0.9, stability: 0.9 }
 
 /** Fetch an MP3 from ElevenLabs for a single line of text. */
+const TTS_MAX_ATTEMPTS = 6
+
+/**
+ * One TTS call, retried when ElevenLabs is busy (429 / 5xx / timeout).
+ * When two people generate at once we can exceed the plan's concurrent
+ * request limit; without retries the stream would silently end early.
+ */
 async function callElevenLabsTts(voiceId, text, voiceSettingsOverride) {
-  const response = await fetch(
+  let lastError
+  for (let attempt = 1; attempt <= TTS_MAX_ATTEMPTS; attempt++) {
+    try {
+      return await callElevenLabsTtsOnce(voiceId, text, voiceSettingsOverride)
+    } catch (err) {
+      lastError = err
+      if (!err.retryable || attempt === TTS_MAX_ATTEMPTS) break
+      const wait = Math.min(8000, 500 * 2 ** (attempt - 1)) + Math.random() * 400
+      console.warn(`[tts] attempt ${attempt} failed (${err.message}); retrying in ${Math.round(wait)}ms`)
+      await new Promise((r) => setTimeout(r, wait))
+    }
+  }
+  throw lastError
+}
+
+async function callElevenLabsTtsOnce(voiceId, text, voiceSettingsOverride) {
+  let response
+  try {
+    response = await fetch(
     `${ELEVENLABS_BASE_URL}/text-to-speech/${voiceId}`,
     {
       method: 'POST',
@@ -227,12 +252,19 @@ async function callElevenLabsTts(voiceId, text, voiceSettingsOverride) {
       signal: AbortSignal.timeout(ELEVENLABS_TTS_TIMEOUT_MS),
     },
   )
+  } catch (err) {
+    // Network error or timeout — worth another try.
+    err.retryable = true
+    throw err
+  }
 
   if (!response.ok) {
     const message = await response.text().catch(() => response.statusText)
-    throw new Error(
+    const error = new Error(
       parseApiError(message) || `ElevenLabs request failed (${response.status})`,
     )
+    error.retryable = response.status === 429 || response.status >= 500
+    throw error
   }
 
   return Buffer.from(await response.arrayBuffer())
