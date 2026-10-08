@@ -55,6 +55,13 @@ export const VOICES = [
     description: 'Calm & Comforting',
     speed: 0.90,
   },
+  {
+    id: 'jane',
+    name: 'Jane',
+    voiceId: 'RILOU7YmBhvwJGDGjNmP',
+    description: 'Calm, Confident & Natural',
+    speed: 0.9,
+  },
 ]
 
 export const TOTAL_STEPS = 4
