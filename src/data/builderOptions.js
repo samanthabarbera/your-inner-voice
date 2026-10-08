@@ -28,6 +28,20 @@ export const VOICES = [
     speed: 0.7,
   },
   {
+    id: 'drew',
+    name: 'Drew',
+    voiceId: '65dhNaIr3Y4ovumVtdy0',
+    description: 'Calm & Reassuring',
+    speed: 0.7,
+  },
+  {
+    id: 'nicole',
+    name: 'Nicole',
+    voiceId: 'gc5LArFpEOmYx9nYmK9l',
+    description: 'ASMR & Relaxing',
+    speed: 0.85,
+  },
+  {
     id: 'rowan',
     name: 'Rowan',
     voiceId: 'kLhAstPcnnPxqzk6gS5i',
@@ -40,20 +54,6 @@ export const VOICES = [
     voiceId: 'KGZeK6FsnWQdrkDHnDNA',
     description: 'Calm & Comforting',
     speed: 0.90,
-  },
-  {
-    id: 'nicole',
-    name: 'Nicole',
-    voiceId: 'gc5LArFpEOmYx9nYmK9l',
-    description: 'ASMR & Relaxing',
-    speed: 0.85,
-  },
-  {
-    id: 'drew',
-    name: 'Drew',
-    voiceId: '65dhNaIr3Y4ovumVtdy0',
-    description: 'Calm & Reassuring',
-    speed: 0.7,
   },
 ]
 
