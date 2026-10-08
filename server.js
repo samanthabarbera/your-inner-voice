@@ -217,11 +217,11 @@ const TTS_MAX_ATTEMPTS = 6
  * When two people generate at once we can exceed the plan's concurrent
  * request limit; without retries the stream would silently end early.
  */
-async function callElevenLabsTts(voiceId, text, voiceSettingsOverride) {
+async function callElevenLabsTts(voiceId, text, voiceSettingsOverride, modelId = ELEVENLABS_TTS_MODEL) {
   let lastError
   for (let attempt = 1; attempt <= TTS_MAX_ATTEMPTS; attempt++) {
     try {
-      return await callElevenLabsTtsOnce(voiceId, text, voiceSettingsOverride)
+      return await callElevenLabsTtsOnce(voiceId, text, voiceSettingsOverride, modelId)
     } catch (err) {
       lastError = err
       if (!err.retryable || attempt === TTS_MAX_ATTEMPTS) break
@@ -233,7 +233,7 @@ async function callElevenLabsTts(voiceId, text, voiceSettingsOverride) {
   throw lastError
 }
 
-async function callElevenLabsTtsOnce(voiceId, text, voiceSettingsOverride) {
+async function callElevenLabsTtsOnce(voiceId, text, voiceSettingsOverride, modelId = ELEVENLABS_TTS_MODEL) {
   let response
   try {
     response = await fetch(
@@ -246,7 +246,7 @@ async function callElevenLabsTtsOnce(voiceId, text, voiceSettingsOverride) {
       },
       body: JSON.stringify({
         text,
-        model_id: ELEVENLABS_TTS_MODEL,
+        model_id: modelId,
         output_format: 'mp3_44100_128',
         apply_text_normalization: 'on',
         voice_settings: { ...ELEVENLABS_VOICE_SETTINGS, ...voiceSettingsOverride },
@@ -608,6 +608,7 @@ app.post('/api/clone-voice', upload.single('file'), async (req, res) => {
 // cached after its first render, so the page can't be used to run up TTS cost.
 // ---------------------------------------------------------------------------
 const SAMPLE_VOICES = [
+  { key: 'jane-v4', name: 'Jane on ElevenLabs v4', voiceId: 'RILOU7YmBhvwJGDGjNmP', model: 'eleven_v4', note: 'Same voice and lines as Jane in the app, on the new v4 model. Compare with Jane below', isNew: true },
   { key: 'clara', name: 'Clara', voiceId: 'Qggl4b0xRMiqOwhPtVWT', note: 'Warm, soothing, natural American', isNew: true },
   { key: 'nichalia', name: 'Nichalia', voiceId: 'acCWxmzPBgXdHwA63uzP', note: 'Gentle and kind, neutral American', isNew: true },
   { key: 'eryn', name: 'Eryn', voiceId: 'dMyQqiVXTU80dDl2eNK8', note: 'Natural, like talking to a good friend', isNew: true },
@@ -641,7 +642,7 @@ async function renderSample(voice) {
   const settings = preset ? { speed: preset.speed } : CLONED_VOICE_SETTINGS
   const parts = []
   for (let i = 0; i < lines.length; i++) {
-    const audio = stripVbrHeader(await callElevenLabsTts(voice.voiceId, lines[i], settings))
+    const audio = stripVbrHeader(await callElevenLabsTts(voice.voiceId, lines[i], settings, voice.model))
     pacer.setSpeech(i, mp3Seconds(audio.length))
     parts.push(audio, silenceMp3(pacer.pauseAfter(i)))
   }
