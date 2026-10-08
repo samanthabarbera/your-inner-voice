@@ -608,6 +608,15 @@ app.post('/api/clone-voice', upload.single('file'), async (req, res) => {
 // cached after its first render, so the page can't be used to run up TTS cost.
 // ---------------------------------------------------------------------------
 const SAMPLE_VOICES = [
+  { key: 'regina', name: 'Regina', voiceId: 'eBthAb30UYbt2nojGXeA', note: 'Mature, calm and deep, meditative', isNew: true, batch: 2 },
+  { key: 'lavender', name: 'LavenderLessons', voiceId: 'QwvsCFsQcnpWxmP1z7V9', note: 'Middle-aged American, soft and melodious', isNew: true, batch: 2 },
+  { key: 'alexis', name: 'Alexis Lancaster', voiceId: 'O4fnkotIypvedJqBp4yb', note: 'British, silky, rich and soft', isNew: true, batch: 2 },
+  { key: 'veda', name: 'Veda Sky', voiceId: 'XcXEQzuLXRU9RcfWzEJt', note: 'Natural, mindful and caring', isNew: true, batch: 2 },
+  { key: 'arabella', name: 'Arabella', voiceId: 'Z3R5wn05IrDiVCyEkUrK', note: 'Mysterious, emotive storyteller', isNew: true, batch: 2 },
+  { key: 'jane', name: 'Jane Doe', voiceId: 'SaqYcK3ZpDKBAImA8AdW', note: 'Young, warm, intimate', isNew: true, batch: 2 },
+  { key: 'ana-rita', name: 'Ana Rita', voiceId: 'wJqPPQ618aTW29mptyoc', note: 'Young British, smooth and bright', isNew: true, batch: 2 },
+  { key: 'charmion', name: 'Charmion', voiceId: 'lUCNYQh2kqW2wiie85Qk', note: 'Middle-aged British, soft and husky', isNew: true, batch: 2 },
+  { key: 'serafina', name: 'Serafina', voiceId: '4tRn1lSkEn13EVTuqb0g', note: 'Deep, velvety American', isNew: true, batch: 2 },
   { key: 'brittney', name: 'Brittney', voiceId: 'pjcYQlDFKMbcOUp6F5GD', note: 'Smooth, measured and calm', isNew: true },
   { key: 'hope', name: 'Hope', voiceId: 'iCrDUkL56s3C8sCRl7wb', note: 'Warm, poetic and captivating', isNew: true },
   { key: 'danielle', name: 'Danielle', voiceId: 'FVQMzxJGPUBtfz1Azdoy', note: 'Gentle, engaging Canadian narrator', isNew: true },
@@ -666,7 +675,7 @@ app.get('/voice-samples', (_req, res) => {
   const colors = ['#F26BB5', '#EDF23A', '#3BE07A', '#4D8DFF', '#B49CFF', '#FF9B4A']
   const cards = SAMPLE_VOICES.map((v, i) => `
     <div class="card" style="background:${colors[i % colors.length]}">
-      <div class="row"><span class="name">${v.name}</span><span class="tag">${v.isNew ? 'New' : 'Current'}</span></div>
+      <div class="row"><span class="name">${v.name}</span><span class="tag">${v.batch === 2 ? 'New' : v.isNew ? 'Earlier batch' : 'Current'}</span></div>
       <div class="note">${v.note}</div>
       <audio controls preload="none" src="/api/voice-sample/${v.key}"></audio>
     </div>`).join('')
@@ -689,7 +698,7 @@ p{font-weight:300;color:rgba(255,255,255,.72);font-size:15px;line-height:1.5}
 audio{width:100%;height:36px}
 </style></head><body><div class="wrap">
 <h1>Voice samples</h1>
-<p>The same 8 lines in every voice, with the app's real pauses. New women's voices are on top, with Nicole and Kristen from the app at the bottom for comparison. The first play of each voice can take about 15 seconds to load.</p>
+<p>The same 8 lines in every voice, with the app's real pauses. The newest batch of women's voices is on top, then the earlier batch, then Nicole and Kristen from the app for comparison. The first play of each voice can take about 15 seconds to load.</p>
 ${cards}
 <p>Script: ${SAMPLE_SCRIPT.split('\n').join(' / ')}</p>
 </div>
