@@ -3,6 +3,10 @@ import { generateMeditationScript } from '../lib/anthropic'
 import { streamFullAudio } from '../lib/elevenlabs'
 import { getThemeLabel } from '../utils/builderAnswers'
 import { getElevenLabsVoiceId } from '../utils/voiceSelection'
+import { getPlaybackTime } from '../lib/playbackClock'
+
+/** Seconds of already-heard audio to keep buffered so skipping back still works. */
+const KEEP_BEHIND_SECONDS = 60
 
 /**
  * Pipes a streaming /api/stream-audio Response into a playable URL.
@@ -17,7 +21,7 @@ import { getElevenLabsVoiceId } from '../utils/voiceSelection'
  *
  * Resolves to { url, blob } once the full audio has been received.
  */
-async function streamToMediaSource(response, onFirstChunk, signal) {
+export async function streamToMediaSource(response, onFirstChunk, signal) {
   const allChunks = []
   const reader = response.body.getReader()
 
@@ -63,13 +67,36 @@ async function streamToMediaSource(response, onFirstChunk, signal) {
       resolve({ url, blob: new Blob(allChunks, { type: 'audio/mpeg' }) })
     }
 
+    let retryTimer = null
+
+    // The browser caps a MediaSource at ~12 minutes of MP3. When it's full,
+    // drop audio the listener has already heard (keeping some for "−15"),
+    // or wait for playback to move on, then try the append again.
+    const makeRoom = () => {
+      const played = getPlaybackTime(url)
+      const start = sb.buffered.length ? sb.buffered.start(0) : 0
+      const cutoff = played == null ? 0 : played - KEEP_BEHIND_SECONDS
+      if (cutoff > start + 1) {
+        sb.remove(start, cutoff) // fires updateend → pump
+        return
+      }
+      clearTimeout(retryTimer)
+      retryTimer = setTimeout(pump, 1000)
+    }
+
     const pump = () => {
-      if (!sb || sb.updating) return
+      if (finished || !sb || sb.updating) return
       if (queue.length > 0) {
+        const chunk = queue[0]
         try {
-          sb.appendBuffer(queue.shift())
+          sb.appendBuffer(chunk)
+          queue.shift()
         } catch (e) {
-          reject(e)
+          if (e?.name === 'QuotaExceededError') {
+            makeRoom()
+          } else {
+            reject(e)
+          }
         }
         return
       }

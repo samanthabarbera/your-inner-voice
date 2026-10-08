@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { registerPlaybackClock } from '../lib/playbackClock'
 
 const WAVEFORM_IDLE = Array(32).fill(0.15)
 const WAVEFORM_ACTIVE = Array.from({ length: 32 }, (_, i) =>
@@ -20,6 +21,7 @@ export function useAudioPlayer(audioUrl, { autoPlay = true, onEnded } = {}) {
 
     const audio = new Audio(audioUrl)
     audioRef.current = audio
+    const unregisterClock = registerPlaybackClock(audioUrl, audio)
 
     const onPlay = () => setIsPlaying(true)
     const onPause = () => setIsPlaying(false)
@@ -43,6 +45,7 @@ export function useAudioPlayer(audioUrl, { autoPlay = true, onEnded } = {}) {
     }
 
     return () => {
+      unregisterClock()
       audio.pause()
       audio.removeEventListener('play', onPlay)
       audio.removeEventListener('pause', onPause)
