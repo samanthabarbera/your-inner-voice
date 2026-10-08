@@ -611,8 +611,6 @@ const SAMPLE_VOICES = [
   { key: 'brittney', name: 'Brittney', voiceId: 'pjcYQlDFKMbcOUp6F5GD', note: 'Smooth, measured and calm', isNew: true },
   { key: 'hope', name: 'Hope', voiceId: 'iCrDUkL56s3C8sCRl7wb', note: 'Warm, poetic and captivating', isNew: true },
   { key: 'danielle', name: 'Danielle', voiceId: 'FVQMzxJGPUBtfz1Azdoy', note: 'Gentle, engaging Canadian narrator', isNew: true },
-  { key: 'british-therapist', name: 'Gentle British Therapist', voiceId: 'WGBA5nRXDnhHLRvWCQdU', note: 'Warm, maternal, slow, slight British accent', isNew: true },
-  { key: 'ethereal-guide', name: 'Ethereal Guide', voiceId: 'murlD4uqvx8S7NoRMCak', note: 'Airy, light, early 30s', isNew: true },
   { key: 'delilah', name: 'Delilah', voiceId: 'mZ3kbJNnKRWI4YzJXA9j', note: 'Relaxing, slightly sultry', isNew: true },
   { key: 'natasha', name: 'Natasha', voiceId: 'Atp5cNFg1Wj5gyKD7HWV', note: 'Soft, half-whispered, American', isNew: true },
   { key: 'emily', name: 'Emily', voiceId: '1cxc5c3E9K6F1wlqOJGV', note: 'Whisper, young Northern Irish', isNew: true },
