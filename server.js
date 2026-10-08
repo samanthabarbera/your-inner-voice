@@ -608,17 +608,19 @@ app.post('/api/clone-voice', upload.single('file'), async (req, res) => {
 // cached after its first render, so the page can't be used to run up TTS cost.
 // ---------------------------------------------------------------------------
 const SAMPLE_VOICES = [
-  { key: 'sarah', name: 'Sarah', voiceId: 'EXAVITQu4vr4xnSDxMaL', note: 'Young American, soft and reassuring', isNew: true },
-  { key: 'matilda', name: 'Matilda', voiceId: 'XrExE9yKIg1WjnnlVkGX', note: 'American, warm and friendly', isNew: true },
-  { key: 'alice', name: 'Alice', voiceId: 'Xb7hH8MSUJpSbSDYk0k2', note: 'British, clear and confident', isNew: true },
-  { key: 'lily', name: 'Lily', voiceId: 'pFZP5JQG7iQjIQuC4Bku', note: 'British, warm and velvety', isNew: true },
-  { key: 'juniper', name: 'Juniper', voiceId: 'aMSt68OGf4xUZAnLpTU8', note: 'Grounded and professional', isNew: true },
-  { key: 'shelley', name: 'Shelley', voiceId: '4CrZuIW9am7gYAxgo2Af', note: 'British, sincere and down to earth', isNew: true },
-  { key: 'jane-reader', name: 'Jane', voiceId: 'RILOU7YmBhvwJGDGjNmP', note: 'Audiobook narrator in her 50s', isNew: true },
-  { key: 'cassidy', name: 'Cassidy', voiceId: '56AoDkrOh6qfVPDXZ7Pt', note: 'Confident, crisp podcaster', isNew: true },
-  { key: 'jessica-anne', name: 'Jessica Anne', voiceId: 'g6xIsTj2HwM6VR4iXFCw', note: 'Articulate, confident, conversational', isNew: true },
-  { key: 'veda', name: 'Veda Sky', voiceId: 'XcXEQzuLXRU9RcfWzEJt', note: 'Natural, mindful and caring', isNew: true },
-  ...VOICES.filter((v) => ['nicole', 'kristen'].includes(v.id)).map((v) => ({
+  { key: 'clara', name: 'Clara', voiceId: 'Qggl4b0xRMiqOwhPtVWT', note: 'Warm, soothing, natural American', isNew: true },
+  { key: 'nichalia', name: 'Nichalia', voiceId: 'acCWxmzPBgXdHwA63uzP', note: 'Gentle and kind, neutral American', isNew: true },
+  { key: 'eryn', name: 'Eryn', voiceId: 'dMyQqiVXTU80dDl2eNK8', note: 'Natural, like talking to a good friend', isNew: true },
+  { key: 'kayla', name: 'Kayla', voiceId: 'aTxZrSrp47xsP6Ot4Kgd', note: 'Calm, casual American narrator', isNew: true },
+  { key: 'halley', name: 'Halley', voiceId: 'eBvoGh8YGJn1xokno71w', note: 'Young American, clean and easy to listen to', isNew: true },
+  { key: 'chelsea', name: 'Chelsea', voiceId: 'NHRgOEwqx5WZNClv5sat', note: '30-something American, conversational', isNew: true },
+  { key: 'annie', name: 'Annie', voiceId: 'XW70ikSsadUbinwLMZ5w', note: 'Clear, authentic narrator', isNew: true },
+  { key: 'tara', name: 'Tara', voiceId: 'P7vsEyTOpZ6YUTulin8m', note: 'Expressive actress, conversational', isNew: true },
+  { key: 'jessica', name: 'Jessica', voiceId: 'cgSgspJ2msm6clMCkdW9', note: 'ElevenLabs built-in, young American', isNew: true },
+  { key: 'river', name: 'River', voiceId: 'SAz9YHcvj6GT2YYXdXww', note: 'ElevenLabs built-in, relaxed and neutral', isNew: true },
+  { key: 'sarah', name: 'Sarah', voiceId: 'EXAVITQu4vr4xnSDxMaL', note: 'Heard last round: soft and reassuring', isNew: false },
+  { key: 'matilda', name: 'Matilda', voiceId: 'XrExE9yKIg1WjnnlVkGX', note: 'Heard last round: warm and friendly', isNew: false },
+  ...VOICES.filter((v) => ['jane', 'nicole', 'kristen'].includes(v.id)).map((v) => ({
     key: v.id, name: v.name, voiceId: v.voiceId, note: 'In the app now', isNew: false,
   })),
 ]
@@ -669,7 +671,7 @@ app.get('/voice-samples', (_req, res) => {
   const colors = ['#F26BB5', '#EDF23A', '#3BE07A', '#4D8DFF', '#B49CFF', '#FF9B4A']
   const cards = SAMPLE_VOICES.map((v, i) => `
     <div class="card" style="background:${colors[i % colors.length]}">
-      <div class="row"><span class="name">${v.name}</span><span class="tag">${v.isNew ? 'New' : 'Current'}</span></div>
+      <div class="row"><span class="name">${v.name}</span><span class="tag">${v.isNew ? 'New' : v.note.startsWith('Heard') ? 'Last round' : 'Current'}</span></div>
       <div class="note">${v.note}</div>
       <audio controls preload="none" src="/api/voice-sample/${v.key}"></audio>
     </div>`).join('')
@@ -692,7 +694,7 @@ p{font-weight:300;color:rgba(255,255,255,.72);font-size:15px;line-height:1.5}
 audio{width:100%;height:36px}
 </style></head><body><div class="wrap">
 <h1>Voice samples</h1>
-<p>The same 8 lines in every voice, with the app's real pauses. Women's voices picked to sound calm, confident and natural (no whispering), with Nicole and Kristen from the app at the bottom for comparison. The first play of each voice can take about 15 seconds to load.</p>
+<p>The same 8 lines in every voice, with the app's real pauses. American women's voices picked to sound calm, confident and natural, like Jane. Two favorites from last round and Jane, Nicole and Kristen from the app are at the bottom for comparison. The first play of each voice can take about 15 seconds to load.</p>
 ${cards}
 <p>Script: ${SAMPLE_SCRIPT.split('\n').join(' / ')}</p>
 </div>
