@@ -607,24 +607,10 @@ app.post('/api/clone-voice', upload.single('file'), async (req, res) => {
 // Only these voices and this passage can be rendered, and each sample is
 // cached after its first render, so the page can't be used to run up TTS cost.
 // ---------------------------------------------------------------------------
-const SAMPLE_VOICES = [
-  { key: 'jane-v4', name: 'Jane on ElevenLabs v4', voiceId: 'RILOU7YmBhvwJGDGjNmP', model: 'eleven_v4', note: 'Same voice and lines as Jane in the app, on the new v4 model. Compare with Jane below', isNew: true },
-  { key: 'clara', name: 'Clara', voiceId: 'Qggl4b0xRMiqOwhPtVWT', note: 'Warm, soothing, natural American', isNew: true },
-  { key: 'nichalia', name: 'Nichalia', voiceId: 'acCWxmzPBgXdHwA63uzP', note: 'Gentle and kind, neutral American', isNew: true },
-  { key: 'eryn', name: 'Eryn', voiceId: 'dMyQqiVXTU80dDl2eNK8', note: 'Natural, like talking to a good friend', isNew: true },
-  { key: 'kayla', name: 'Kayla', voiceId: 'aTxZrSrp47xsP6Ot4Kgd', note: 'Calm, casual American narrator', isNew: true },
-  { key: 'halley', name: 'Halley', voiceId: 'eBvoGh8YGJn1xokno71w', note: 'Young American, clean and easy to listen to', isNew: true },
-  { key: 'chelsea', name: 'Chelsea', voiceId: 'NHRgOEwqx5WZNClv5sat', note: '30-something American, conversational', isNew: true },
-  { key: 'annie', name: 'Annie', voiceId: 'XW70ikSsadUbinwLMZ5w', note: 'Clear, authentic narrator', isNew: true },
-  { key: 'tara', name: 'Tara', voiceId: 'P7vsEyTOpZ6YUTulin8m', note: 'Expressive actress, conversational', isNew: true },
-  { key: 'jessica', name: 'Jessica', voiceId: 'cgSgspJ2msm6clMCkdW9', note: 'ElevenLabs built-in, young American', isNew: true },
-  { key: 'river', name: 'River', voiceId: 'SAz9YHcvj6GT2YYXdXww', note: 'ElevenLabs built-in, relaxed and neutral', isNew: true },
-  { key: 'sarah', name: 'Sarah', voiceId: 'EXAVITQu4vr4xnSDxMaL', note: 'Heard last round: soft and reassuring', isNew: false },
-  { key: 'matilda', name: 'Matilda', voiceId: 'XrExE9yKIg1WjnnlVkGX', note: 'Heard last round: warm and friendly', isNew: false },
-  ...VOICES.filter((v) => ['jane', 'nicole', 'kristen'].includes(v.id)).map((v) => ({
-    key: v.id, name: v.name, voiceId: v.voiceId, note: 'In the app now', isNew: false,
-  })),
-]
+const SAMPLE_VOICES = VOICES.filter((v) => v.voiceId).flatMap((v) => [
+  { key: v.id, name: v.name, voiceId: v.voiceId, note: 'Current model (what the app uses now)', isNew: false },
+  { key: `${v.id}-v4`, name: v.name, voiceId: v.voiceId, model: 'eleven_v4', note: 'ElevenLabs v4', isNew: true },
+])
 const SAMPLE_SCRIPT = `Close your eyes, and let your breath slow down.
 Feel the weight of your body, fully supported.
 You are already the person you are becoming.
@@ -671,8 +657,8 @@ app.get('/api/voice-sample/:key', async (req, res) => {
 app.get('/voice-samples', (_req, res) => {
   const colors = ['#F26BB5', '#EDF23A', '#3BE07A', '#4D8DFF', '#B49CFF', '#FF9B4A']
   const cards = SAMPLE_VOICES.map((v, i) => `
-    <div class="card" style="background:${colors[i % colors.length]}">
-      <div class="row"><span class="name">${v.name}</span><span class="tag">${v.isNew ? 'New' : v.note.startsWith('Heard') ? 'Last round' : 'Current'}</span></div>
+    <div class="card" style="background:${colors[Math.floor(i / 2) % colors.length]}">
+      <div class="row"><span class="name">${v.name}</span><span class="tag">${v.isNew ? 'v4' : 'Now'}</span></div>
       <div class="note">${v.note}</div>
       <audio controls preload="none" src="/api/voice-sample/${v.key}"></audio>
     </div>`).join('')
@@ -695,7 +681,7 @@ p{font-weight:300;color:rgba(255,255,255,.72);font-size:15px;line-height:1.5}
 audio{width:100%;height:36px}
 </style></head><body><div class="wrap">
 <h1>Voice samples</h1>
-<p>The same 8 lines in every voice, with the app's real pauses. American women's voices picked to sound calm, confident and natural, like Jane. Two favorites from last round and Jane, Nicole and Kristen from the app are at the bottom for comparison. The first play of each voice can take about 15 seconds to load.</p>
+<p>Each guide voice twice, reading the same 8 lines with the app's real pauses: first on the model the app uses now, then on ElevenLabs v4. The first play of each one can take about 15 seconds to load.</p>
 ${cards}
 <p>Script: ${SAMPLE_SCRIPT.split('\n').join(' / ')}</p>
 </div>
