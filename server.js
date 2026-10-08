@@ -608,22 +608,16 @@ app.post('/api/clone-voice', upload.single('file'), async (req, res) => {
 // cached after its first render, so the page can't be used to run up TTS cost.
 // ---------------------------------------------------------------------------
 const SAMPLE_VOICES = [
-  { key: 'regina', name: 'Regina', voiceId: 'eBthAb30UYbt2nojGXeA', note: 'Mature, calm and deep, meditative', isNew: true, batch: 2 },
-  { key: 'lavender', name: 'LavenderLessons', voiceId: 'QwvsCFsQcnpWxmP1z7V9', note: 'Middle-aged American, soft and melodious', isNew: true, batch: 2 },
-  { key: 'alexis', name: 'Alexis Lancaster', voiceId: 'O4fnkotIypvedJqBp4yb', note: 'British, silky, rich and soft', isNew: true, batch: 2 },
-  { key: 'veda', name: 'Veda Sky', voiceId: 'XcXEQzuLXRU9RcfWzEJt', note: 'Natural, mindful and caring', isNew: true, batch: 2 },
-  { key: 'arabella', name: 'Arabella', voiceId: 'Z3R5wn05IrDiVCyEkUrK', note: 'Mysterious, emotive storyteller', isNew: true, batch: 2 },
-  { key: 'jane', name: 'Jane Doe', voiceId: 'SaqYcK3ZpDKBAImA8AdW', note: 'Young, warm, intimate', isNew: true, batch: 2 },
-  { key: 'ana-rita', name: 'Ana Rita', voiceId: 'wJqPPQ618aTW29mptyoc', note: 'Young British, smooth and bright', isNew: true, batch: 2 },
-  { key: 'charmion', name: 'Charmion', voiceId: 'lUCNYQh2kqW2wiie85Qk', note: 'Middle-aged British, soft and husky', isNew: true, batch: 2 },
-  { key: 'serafina', name: 'Serafina', voiceId: '4tRn1lSkEn13EVTuqb0g', note: 'Deep, velvety American', isNew: true, batch: 2 },
-  { key: 'brittney', name: 'Brittney', voiceId: 'pjcYQlDFKMbcOUp6F5GD', note: 'Smooth, measured and calm', isNew: true },
-  { key: 'hope', name: 'Hope', voiceId: 'iCrDUkL56s3C8sCRl7wb', note: 'Warm, poetic and captivating', isNew: true },
-  { key: 'danielle', name: 'Danielle', voiceId: 'FVQMzxJGPUBtfz1Azdoy', note: 'Gentle, engaging Canadian narrator', isNew: true },
-  { key: 'delilah', name: 'Delilah', voiceId: 'mZ3kbJNnKRWI4YzJXA9j', note: 'Relaxing, slightly sultry', isNew: true },
-  { key: 'natasha', name: 'Natasha', voiceId: 'Atp5cNFg1Wj5gyKD7HWV', note: 'Soft, half-whispered, American', isNew: true },
-  { key: 'emily', name: 'Emily', voiceId: '1cxc5c3E9K6F1wlqOJGV', note: 'Whisper, young Northern Irish', isNew: true },
-  { key: 'aimee', name: 'AImee', voiceId: 'zA6D7RyKdc2EClouEMkP', note: 'Tranquil ASMR whisper', isNew: true },
+  { key: 'sarah', name: 'Sarah', voiceId: 'EXAVITQu4vr4xnSDxMaL', note: 'Young American, soft and reassuring', isNew: true },
+  { key: 'matilda', name: 'Matilda', voiceId: 'XrExE9yKIg1WjnnlVkGX', note: 'American, warm and friendly', isNew: true },
+  { key: 'alice', name: 'Alice', voiceId: 'Xb7hH8MSUJpSbSDYk0k2', note: 'British, clear and confident', isNew: true },
+  { key: 'lily', name: 'Lily', voiceId: 'pFZP5JQG7iQjIQuC4Bku', note: 'British, warm and velvety', isNew: true },
+  { key: 'juniper', name: 'Juniper', voiceId: 'aMSt68OGf4xUZAnLpTU8', note: 'Grounded and professional', isNew: true },
+  { key: 'shelley', name: 'Shelley', voiceId: '4CrZuIW9am7gYAxgo2Af', note: 'British, sincere and down to earth', isNew: true },
+  { key: 'jane-reader', name: 'Jane', voiceId: 'RILOU7YmBhvwJGDGjNmP', note: 'Audiobook narrator in her 50s', isNew: true },
+  { key: 'cassidy', name: 'Cassidy', voiceId: '56AoDkrOh6qfVPDXZ7Pt', note: 'Confident, crisp podcaster', isNew: true },
+  { key: 'jessica-anne', name: 'Jessica Anne', voiceId: 'g6xIsTj2HwM6VR4iXFCw', note: 'Articulate, confident, conversational', isNew: true },
+  { key: 'veda', name: 'Veda Sky', voiceId: 'XcXEQzuLXRU9RcfWzEJt', note: 'Natural, mindful and caring', isNew: true },
   ...VOICES.filter((v) => ['nicole', 'kristen'].includes(v.id)).map((v) => ({
     key: v.id, name: v.name, voiceId: v.voiceId, note: 'In the app now', isNew: false,
   })),
@@ -675,7 +669,7 @@ app.get('/voice-samples', (_req, res) => {
   const colors = ['#F26BB5', '#EDF23A', '#3BE07A', '#4D8DFF', '#B49CFF', '#FF9B4A']
   const cards = SAMPLE_VOICES.map((v, i) => `
     <div class="card" style="background:${colors[i % colors.length]}">
-      <div class="row"><span class="name">${v.name}</span><span class="tag">${v.batch === 2 ? 'New' : v.isNew ? 'Earlier batch' : 'Current'}</span></div>
+      <div class="row"><span class="name">${v.name}</span><span class="tag">${v.isNew ? 'New' : 'Current'}</span></div>
       <div class="note">${v.note}</div>
       <audio controls preload="none" src="/api/voice-sample/${v.key}"></audio>
     </div>`).join('')
@@ -698,7 +692,7 @@ p{font-weight:300;color:rgba(255,255,255,.72);font-size:15px;line-height:1.5}
 audio{width:100%;height:36px}
 </style></head><body><div class="wrap">
 <h1>Voice samples</h1>
-<p>The same 8 lines in every voice, with the app's real pauses. The newest batch of women's voices is on top, then the earlier batch, then Nicole and Kristen from the app for comparison. The first play of each voice can take about 15 seconds to load.</p>
+<p>The same 8 lines in every voice, with the app's real pauses. Women's voices picked to sound calm, confident and natural (no whispering), with Nicole and Kristen from the app at the bottom for comparison. The first play of each voice can take about 15 seconds to load.</p>
 ${cards}
 <p>Script: ${SAMPLE_SCRIPT.split('\n').join(' / ')}</p>
 </div>
