@@ -600,6 +600,97 @@ app.post('/api/clone-voice', upload.single('file'), async (req, res) => {
   }
 })
 
+// ---------------------------------------------------------------------------
+// Pacing sample page (/pacing-sample)
+//
+// Plays one fixed passage in each candidate voice so we can compare them.
+// Only these voices and this passage can be rendered, and each sample is
+// cached after its first render, so the page can't be used to run up TTS cost.
+// ---------------------------------------------------------------------------
+const SAMPLE_VOICES = VOICES.filter((v) => v.voiceId).map((v) => ({
+  key: v.id, name: v.name, voiceId: v.voiceId, note: v.description, isNew: false,
+}))
+const SAMPLE_SCRIPT = `Close your eyes, and let your breath slow down.
+Feel the weight of your body, fully supported.
+Let your shoulders soften...
+Now, gently ask yourself:
+What would you do today if you trusted yourself completely?
+Let the answer come in its own time.
+Who are you when no one is watching?
+Notice what rises.
+You are already the person you are becoming.
+Breathe that in...
+And let it settle.`
+const sampleCache = new Map() // key -> Promise<Buffer>
+
+async function renderSample(voice) {
+  const lines = scriptToLines(SAMPLE_SCRIPT)
+  const pacer = createPacer(lines, null)
+  const preset = VOICES.find((v) => v.voiceId === voice.voiceId)
+  const settings = preset ? { speed: preset.speed } : CLONED_VOICE_SETTINGS
+  const parts = []
+  for (let i = 0; i < lines.length; i++) {
+    const audio = stripVbrHeader(await callElevenLabsTts(voice.voiceId, lines[i], settings, voice.model))
+    pacer.setSpeech(i, mp3Seconds(audio.length))
+    parts.push(audio, silenceMp3(pacer.pauseAfter(i)))
+  }
+  return Buffer.concat(parts)
+}
+
+app.get('/api/pacing-sample/:key', async (req, res) => {
+  const voice = SAMPLE_VOICES.find((v) => v.key === req.params.key)
+  if (!voice) return res.status(404).json({ error: 'Unknown voice.' })
+  if (!sampleCache.has(voice.key)) {
+    const job = renderSample(voice)
+    sampleCache.set(voice.key, job)
+    job.catch(() => sampleCache.delete(voice.key))
+  }
+  try {
+    const buf = await sampleCache.get(voice.key)
+    res.set('Content-Type', 'audio/mpeg')
+    res.set('Cache-Control', 'public, max-age=86400')
+    return res.send(buf)
+  } catch (err) {
+    console.error(`[voice-sample] ${voice.name} failed:`, err.message)
+    return res.status(502).json({ error: 'Could not make this sample. Try again.' })
+  }
+})
+
+app.get('/pacing-sample', (_req, res) => {
+  const colors = ['#F26BB5', '#EDF23A', '#3BE07A', '#4D8DFF', '#B49CFF', '#FF9B4A']
+  const cards = SAMPLE_VOICES.map((v, i) => `
+    <div class="card" style="background:${colors[i % colors.length]}">
+      <div class="row"><span class="name">${v.name}</span><span class="tag">Pacing sample</span></div>
+      <div class="note">${v.note}</div>
+      <audio controls preload="none" src="/api/pacing-sample/${v.key}"></audio>
+    </div>`).join('')
+  res.set('Content-Type', 'text/html; charset=utf-8')
+  res.send(`<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Pacing sample</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap">
+<style>
+body{margin:0;background:#0B0B0C;color:#fff;font-family:Outfit,sans-serif}
+.wrap{max-width:520px;margin:0 auto;padding:40px 16px 60px}
+h1{margin:0;font-weight:500;font-size:32px;line-height:1.05;text-transform:uppercase}
+p{font-weight:300;color:rgba(255,255,255,.72);font-size:15px;line-height:1.5}
+.card{color:#0B0B0C;border-radius:24px;padding:16px 18px;margin-bottom:10px}
+.row{display:flex;justify-content:space-between;align-items:baseline}
+.name{font-size:22px;font-weight:600;text-transform:uppercase}
+.tag{font-size:12px;font-weight:500;letter-spacing:.08em;text-transform:uppercase}
+.note{font-size:14px;margin:2px 0 10px}
+audio{width:100%;height:36px}
+</style></head><body><div class="wrap">
+<h1>Pacing sample</h1>
+<p>About a minute of meditation in each of your guide voices, with the new spacing: short rests between sentences, longer after \"...\" moments, and the longest after questions. The background music isn't included here. The first play of each voice can take about 15 seconds to load.</p>
+${cards}
+<p>Script: ${SAMPLE_SCRIPT.split('\n').join(' / ')}</p>
+</div>
+<script>document.querySelectorAll('audio').forEach(a=>a.addEventListener('play',()=>document.querySelectorAll('audio').forEach(o=>{if(o!==a)o.pause()})))</script>
+</body></html>`)
+})
+
 // Serve built frontend in production
 if (process.env.NODE_ENV === 'production') {
   const { existsSync } = await import('node:fs')
