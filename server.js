@@ -370,9 +370,10 @@ app.post('/api/generate-meditation', async (req, res) => {
     // nearly twice the words). If the draft is far off, or the eyes don't open on the
     // final line, ask for one corrected version before any audio is made.
     const target = getTargetWordCount(lengthMinutes)
-    const check = checkScript(script, target)
+    let check = checkScript(script, target)
     console.log(`[generate] ${lengthMinutes} min: ${check.words} words (target ${target}), eyes-open last: ${check.eyesOpenLast}`)
-    if (!check.ok) {
+    // Up to two revision passes if the draft is too long/short or ends wrong.
+    for (let round = 1; round <= 2 && !check.ok; round++) {
       try {
         const revised = await fetch(ANTHROPIC_API_URL, {
           method: 'POST',
@@ -391,20 +392,22 @@ app.post('/api/generate-meditation', async (req, res) => {
             ],
           }),
         })
-        if (revised.ok) {
-          const revisedData = await revised.json()
-          const revisedText = revisedData.content?.find((b) => b.type === 'text')?.text
-          if (revisedText?.trim()) {
-            const revisedScript = cleanMeditationScript(revisedText.trim())
-            const recheck = checkScript(revisedScript, target)
-            console.log(`[generate] revised: ${recheck.words} words, eyes-open last: ${recheck.eyesOpenLast}`)
-            if (Math.abs(recheck.words - target) <= Math.abs(check.words - target) || (!check.eyesOpenLast && recheck.eyesOpenLast)) {
-              script = revisedScript
-            }
-          }
+        if (!revised.ok) break
+        const revisedData = await revised.json()
+        const revisedText = revisedData.content?.find((b) => b.type === 'text')?.text
+        if (!revisedText?.trim()) break
+        const revisedScript = cleanMeditationScript(revisedText.trim())
+        const recheck = checkScript(revisedScript, target)
+        console.log(`[generate] revision ${round}: ${recheck.words} words, eyes-open last: ${recheck.eyesOpenLast}`)
+        const closer = Math.abs(recheck.words - target) <= Math.abs(check.words - target)
+        // Never trade a correct ending for a closer word count.
+        if ((closer && (recheck.eyesOpenLast || !check.eyesOpenLast)) || (!check.eyesOpenLast && recheck.eyesOpenLast)) {
+          script = revisedScript
+          check = recheck
         }
       } catch (err) {
-        console.error('[generate] revision failed, using first draft:', err.message)
+        console.error('[generate] revision failed, using current draft:', err.message)
+        break
       }
     }
 

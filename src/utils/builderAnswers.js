@@ -5,5 +5,5 @@ export function getThemeLabel(themeId) {
 }
 
 export function getLengthMinutes(lengthId) {
-  return LENGTHS.find((length) => length.id === lengthId)?.minutes ?? 10
+  return LENGTHS.find((length) => length.id === String(lengthId))?.minutes ?? 10
 }

@@ -65,6 +65,7 @@ Rules derived from this example:
 — No connective tissue words like 'and so' or 'as you' or 'allowing yourself to' — cut them all
 — Word count target: write approximately [WORD_COUNT] spoken words — aim for this number precisely. Too few makes the meditation feel rushed and incomplete; too many makes it drag past [LENGTH] minutes.
 — Distribute [WORD_COUNT] words across all 8 parts according to their percentages. Every part must be present and complete.
+— Say each idea once. Do not restate a line in different words or repeat an image you have already used. This matters most in shorter meditations: at [LENGTH] minutes, every line must earn its place, and the pauses between lines are part of the experience.
 — The silence is the meditation. The words are just the doorway.`
 
 const UNIVERSE_PROMPT_TEMPLATE = `You are a meditation guide writing a deeply personalized guided meditation script. Your style is inspired by Joe Dispenza — authoritative, grounded, and transformative. You write in second person present tense throughout. Never say "imagine" or "picture yourself" — instead speak as if the transformation is already happening right now. You are not suggesting possibilities, you are guiding someone into a new reality.
@@ -119,12 +120,15 @@ Rules derived from this example:
 — No connective tissue words like 'and so' or 'as you' or 'allowing yourself to' — cut them all
 — Word count target: write approximately [WORD_COUNT] spoken words — aim for this number precisely. Too few makes the meditation feel rushed and incomplete; too many makes it drag past [LENGTH] minutes.
 — Distribute [WORD_COUNT] words across all 8 parts according to their percentages. Every part must be present and complete.
+— Say each idea once. Do not restate a line in different words or repeat an image you have already used. This matters most in shorter meditations: at [LENGTH] minutes, every line must earn its place, and the pauses between lines are part of the experience.
 — The silence is the meditation. The words are just the doorway.`
 
-// Calibrated for one recording per line (~0.55s per spoken word) plus the
-// automatic pauses, so the finished audio lands on the chosen length. The audio
-// step then fine-tunes the pauses to hit the exact time.
-const WORD_COUNTS = { 5: 290, 10: 590, 15: 880 }
+// Calibrated for Eleven v4 (~0.43s per spoken word) so the automatic pauses can
+// sit at full length (about 1.7s between sentences, 4.5s after questions)
+// rather than being squeezed. Shorter meditations get proportionally fewer
+// words: silence matters more when there's less time. The audio step then
+// fine-tunes the pauses to hit the exact time.
+const WORD_COUNTS = { 5: 230, 10: 500, 15: 780 }
 
 export function getTargetWordCount(minutes) {
   return WORD_COUNTS[minutes] ?? Math.round(minutes * 59)
@@ -139,7 +143,8 @@ export function checkScript(script, target) {
   const eyesLines = lines.map((l, i) => (EYES_OPEN_PATTERN.test(l) ? i : -1)).filter((i) => i >= 0)
   // The eyes-open instruction may span the last two lines ("Open your eyes. / When you're ready.").
   const eyesOpenLast = eyesLines.length > 0 && eyesLines.every((i) => i >= lines.length - 2)
-  const withinLength = words >= target * 0.85 && words <= target * 1.15
+  // Too long is worse than too short: extra words squeeze the pauses.
+  const withinLength = words >= target * 0.8 && words <= target * 1.08
   return { ok: withinLength && eyesOpenLast, words, withinLength, eyesOpenLast }
 }
 
@@ -147,7 +152,7 @@ export function buildRevisionPrompt(check, target, minutes) {
   const fixes = []
   if (!check.withinLength) {
     fixes.push(
-      `It is ${check.words} words, but a ${minutes}-minute meditation needs approximately ${target} spoken words (between ${Math.round(target * 0.9)} and ${Math.round(target * 1.1)}). ${check.words > target ? 'Condense it — shorten or remove lines evenly across all eight parts.' : 'Expand it — add lines evenly across all eight parts.'}`,
+      `It is ${check.words} words, but a ${minutes}-minute meditation needs approximately ${target} spoken words (no more than ${Math.round(target * 1.05)}). ${check.words > target ? 'Condense it: first cut lines that repeat or restate something already said, then trim evenly across the eight parts. Keep every reflective question, the five declarations, and the full return sequence.' : 'Expand it — add lines evenly across all eight parts.'}`,
     )
   }
   if (!check.eyesOpenLast) {
